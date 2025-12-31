@@ -1,7 +1,7 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, Headphones, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp, Bot, Send } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
 import { analyzeRepairImage, analyzeRepairAudio } from './services/geminiService';
 
@@ -178,7 +178,21 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   
+  // Chat State
+  const [chatMessages, setChatMessages] = useState<{id: string, text?: string, sender: 'user' | 'agent', order?: WorkOrder}[]>([
+      { id: '1', text: "Hello! I'm your support assistant. You can select an order below to report an issue or ask me anything.", sender: 'agent' }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto scroll chat
+  useEffect(() => {
+    if (activeTab === 'support') {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, activeTab]);
 
   // Stats
   const stats = {
@@ -357,6 +371,34 @@ const App: React.FC = () => {
        alert("Payment Successful!");
     }, 1500);
   };
+
+  // Chat Handlers
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+    const newMsg = { id: Date.now().toString(), text: chatInput, sender: 'user' as const };
+    setChatMessages(prev => [...prev, newMsg]);
+    setChatInput("");
+    
+    // Fake reply
+    setTimeout(() => {
+        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: "I've received your message. An agent will be with you shortly.", sender: 'agent' }]);
+    }, 1000);
+  };
+
+  const handleSendOrder = (order: WorkOrder) => {
+    const newMsg = { 
+        id: Date.now().toString(), 
+        text: `I have a question about this work order: ${order.title}`, 
+        sender: 'user' as const,
+        order: order
+    };
+    setChatMessages(prev => [...prev, newMsg]);
+
+    // Fake reply
+    setTimeout(() => {
+        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: `Checking status for ${order.id}... It is currently ${order.status}.`, sender: 'agent' }]);
+    }, 1000);
+  }
 
   const formatDate = (isoString: string) => {
       const date = new Date(isoString);
@@ -868,6 +910,110 @@ const App: React.FC = () => {
         </div>
     );
   };
+
+  const renderSupport = () => {
+    const ongoingOrders = orders.filter(o => 
+        o.status !== OrderStatus.COMPLETED && 
+        o.status !== OrderStatus.CANCELLED &&
+        o.status !== OrderStatus.REFUNDING
+    );
+
+    return (
+        <div className="flex flex-col h-full bg-slate-50 relative">
+             {/* Header */}
+             <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+                    <Bot size={24} />
+                </div>
+                <div>
+                    <h2 className="font-bold text-lg text-slate-800">Support Chat</h2>
+                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Online
+                    </p>
+                </div>
+             </div>
+
+             {/* Messages */}
+             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4">
+                {chatMessages.map(msg => (
+                    <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] space-y-2`}>
+                            {msg.text && (
+                                <div className={`p-3 rounded-2xl text-sm ${
+                                    msg.sender === 'user' 
+                                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-200' 
+                                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm'
+                                }`}>
+                                    {msg.text}
+                                </div>
+                            )}
+                            {msg.order && (
+                                <div className={`p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-left overflow-hidden ${msg.sender === 'user' ? 'ml-auto' : ''}`}>
+                                     <div className="flex items-center gap-2 mb-2 border-b border-slate-50 pb-2">
+                                        <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1 rounded">{msg.order.id}</span>
+                                        <StatusBadge status={msg.order.status} />
+                                     </div>
+                                     <p className="font-bold text-slate-800 text-sm">{msg.order.title}</p>
+                                     <p className="text-xs text-slate-500 mt-0.5">{msg.order.location}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             {/* Bottom Area - Order List & Input */}
+             {/* We need to be careful with z-index and spacing because of Layout's floating nav */}
+             <div className="bg-white border-t border-slate-100 z-20 pb-0 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+                
+                {/* Ongoing Orders List */}
+                {ongoingOrders.length > 0 && (
+                    <div className="border-b border-slate-100 bg-slate-50/50">
+                        <div className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                            <span>Active Orders</span>
+                            <span className="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px]">{ongoingOrders.length}</span>
+                        </div>
+                        <div className="flex overflow-x-auto gap-3 px-4 pb-3 no-scrollbar snap-x">
+                            {ongoingOrders.map(order => (
+                                <button 
+                                    key={order.id} 
+                                    onClick={() => handleSendOrder(order)}
+                                    className="snap-start shrink-0 w-48 bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col items-start gap-1 hover:border-indigo-300 hover:shadow-md transition-all text-left group"
+                                >
+                                    <div className="flex justify-between w-full mb-1">
+                                        <span className="text-[10px] font-mono text-slate-400">{order.id}</span>
+                                        <div className={`w-2 h-2 rounded-full ${order.status === OrderStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
+                                    </div>
+                                    <p className="font-bold text-slate-700 text-xs truncate w-full group-hover:text-indigo-700">{order.title}</p>
+                                    <p className="text-[10px] text-slate-500 truncate w-full">{order.location}</p>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Input Field */}
+                <div className="p-3 flex gap-2 items-center">
+                    <input 
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                    />
+                    <button 
+                        onClick={handleSendMessage}
+                        disabled={!chatInput.trim()}
+                        className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:shadow-none transition-all"
+                    >
+                        <Send size={18} className="ml-0.5" />
+                    </button>
+                </div>
+             </div>
+        </div>
+    )
+  }
 
   // --- Modals ---
 
@@ -1391,14 +1537,7 @@ const App: React.FC = () => {
     >
       {activeTab === 'home' && renderHome()}
       {activeTab === 'orders' && renderOrders()}
-      {activeTab === 'mall' && (
-         <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
-            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300">
-               <ShoppingBag size={32} />
-            </div>
-            <p className="font-medium">Store Coming Soon</p>
-         </div>
-      )}
+      {activeTab === 'support' && renderSupport()}
       {activeTab === 'settings' && (
         <div className="flex items-center justify-center h-full text-slate-400">Settings Placeholder</div>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ClipboardList, Settings, Mic, ShoppingBag } from 'lucide-react';
+import { Home, ClipboardList, Settings, Mic, Headphones } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -42,10 +42,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         </button>
 
         <button 
-          onClick={() => onTabChange('mall')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all ${activeTab === 'mall' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => onTabChange('support')}
+          className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all ${activeTab === 'support' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <ShoppingBag size={22} />
+          <Headphones size={22} />
         </button>
 
         <button 
