@@ -20,15 +20,19 @@ export const Card: React.FC<CardProps> = ({ children, className = '', onClick })
 export const StatusBadge: React.FC<{ status: OrderStatus | string }> = ({ status }) => {
   const styles: Record<string, string> = {
     [OrderStatus.PENDING]: 'bg-amber-50 text-amber-600 border-amber-100',
+    [OrderStatus.PENDING_VISIT]: 'bg-blue-50 text-blue-600 border-blue-100',
     [OrderStatus.IN_PROGRESS]: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-    [OrderStatus.COMPLETED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    'Reassigned': 'bg-orange-50 text-orange-600 border-orange-100'
+    [OrderStatus.PENDING_PAYMENT]: 'bg-purple-50 text-purple-600 border-purple-100',
+    [OrderStatus.REFUNDING]: 'bg-pink-50 text-pink-600 border-pink-100',
+    [OrderStatus.COMPLETED]: 'bg-slate-100 text-slate-600 border-slate-200',
+    [OrderStatus.PENDING_REVIEW]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    [OrderStatus.CANCELLED]: 'bg-red-50 text-red-600 border-red-100',
   };
 
   const defaultStyle = 'bg-slate-50 text-slate-600 border-slate-100';
 
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[status] || defaultStyle}`}>
+    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${styles[status] || defaultStyle}`}>
       {status}
     </span>
   );

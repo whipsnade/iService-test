@@ -1,8 +1,12 @@
 export enum OrderStatus {
-  PENDING = 'Pending',
-  IN_PROGRESS = 'In Progress',
-  COMPLETED = 'Completed',
-  CANCELLED = 'Cancelled'
+  PENDING = 'Pending Acceptance',    // 待接单
+  PENDING_VISIT = 'Pending Visit',   // 待上门
+  IN_PROGRESS = 'In Progress',       // 维修中
+  PENDING_PAYMENT = 'Pending Payment', // 待付款
+  REFUNDING = 'Refunding',           // 退款中
+  COMPLETED = 'Completed',           // 已完成
+  PENDING_REVIEW = 'Pending Review', // 待评价
+  CANCELLED = 'Cancelled'            // 已取消
 }
 
 export enum UrgencyLevel {
@@ -25,7 +29,8 @@ export interface WorkOrder {
   location: string;
   status: OrderStatus;
   urgency: UrgencyLevel;
-  dateCreated: string;
+  dateCreated: string; // ISO Date String
+  equipmentId?: string;
   imageUrl?: string;
   timeline: TimelineEvent[];
   description?: string;

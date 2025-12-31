@@ -1,36 +1,85 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
 import { analyzeRepairImage } from './services/geminiService';
 
-// Mock Data
+// --- HELPERS ---
+const subDays = (date: Date, days: number) => new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+
+// --- MOCK DATA ---
+const NOW = new Date();
 const MOCK_ORDERS: WorkOrder[] = [
+  {
+    id: 'WO-9925',
+    title: 'POS Connection Failure',
+    location: 'Bar Area • 1F',
+    status: OrderStatus.PENDING,
+    urgency: UrgencyLevel.HIGH,
+    dateCreated: subDays(NOW, 0.1).toISOString(), // 2.4 hours ago
+    equipmentId: 'pos',
+    timeline: [{ title: 'Created', timestamp: subDays(NOW, 0.1).toISOString(), isActive: true }]
+  },
   {
     id: 'WO-9920',
     title: 'Ice Machine Malfunction',
-    location: 'Main Kitchen • Downtown',
-    status: OrderStatus.PENDING,
+    location: 'Main Kitchen • B1',
+    status: OrderStatus.PENDING_VISIT,
     urgency: UrgencyLevel.HIGH,
-    dateCreated: '2h ago',
-    timeline: [
-      { title: 'Work Order Created', timestamp: '08:30 AM', isActive: true, description: 'System Auto-Gen' }
-    ]
+    dateCreated: subDays(NOW, 1).toISOString(), // 1 day ago
+    equipmentId: 'other',
+    timeline: [{ title: 'Created', timestamp: subDays(NOW, 1).toISOString(), isActive: false }]
   },
   {
     id: 'WO-9918',
     title: 'HVAC Maintenance',
-    location: 'Rooftop Unit 3 • Westside',
+    location: 'Rooftop Unit 3',
     status: OrderStatus.IN_PROGRESS,
     urgency: UrgencyLevel.MEDIUM,
-    dateCreated: '4h ago',
-    timeline: [
-      { title: 'Work Order Created', timestamp: '08:30 AM', isActive: false, description: 'System Auto-Gen' },
-      { title: 'Technician Dispatched', timestamp: '09:15 AM', isActive: false, description: 'Assigned to Mike R.' },
-      { title: 'Work In Progress', timestamp: '10:00 AM', isActive: true, description: 'Technician on-site. Diagnostic started.' },
-      { title: 'Completion', timestamp: '', isActive: false }
-    ]
+    dateCreated: subDays(NOW, 3).toISOString(),
+    equipmentId: 'hvac',
+    timeline: [{ title: 'In Progress', timestamp: subDays(NOW, 3).toISOString(), isActive: true }]
+  },
+  {
+    id: 'WO-9850',
+    title: 'Lobby Light Flickering',
+    location: 'Main Entrance',
+    status: OrderStatus.PENDING_PAYMENT,
+    urgency: UrgencyLevel.LOW,
+    dateCreated: subDays(NOW, 15).toISOString(),
+    equipmentId: 'light',
+    timeline: []
+  },
+  {
+    id: 'WO-9801',
+    title: 'Bathroom Leak',
+    location: 'Restroom • 2F',
+    status: OrderStatus.COMPLETED,
+    urgency: UrgencyLevel.CRITICAL,
+    dateCreated: subDays(NOW, 45).toISOString(),
+    equipmentId: 'plumbing',
+    timeline: []
+  },
+  {
+    id: 'WO-9755',
+    title: 'Broken Chair',
+    location: 'Dining Hall',
+    status: OrderStatus.PENDING_REVIEW,
+    urgency: UrgencyLevel.LOW,
+    dateCreated: subDays(NOW, 20).toISOString(),
+    equipmentId: 'other',
+    timeline: []
+  },
+  {
+    id: 'WO-9100',
+    title: 'Old HVAC System',
+    location: 'Basement',
+    status: OrderStatus.CANCELLED,
+    urgency: UrgencyLevel.MEDIUM,
+    dateCreated: subDays(NOW, 100).toISOString(), // > 3 months
+    equipmentId: 'hvac',
+    timeline: []
   }
 ];
 
@@ -42,6 +91,15 @@ const EQUIPMENT_TYPES = [
   { id: 'other', name: 'Other', icon: HelpCircle, issues: ['General Damage', 'Cleaning Needed', 'Safety Hazard', 'Furniture Broken'] }
 ];
 
+const STATUS_FILTERS = ['All', ...Object.values(OrderStatus)];
+const DATE_RANGES = [
+  { label: '10 Days', value: '10d', days: 10 },
+  { label: '1 Month', value: '1m', days: 30 },
+  { label: '3 Months', value: '3m', days: 90 },
+  { label: '6 Months', value: '6m', days: 180 },
+  { label: '1 Year', value: '1y', days: 365 },
+];
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [orders, setOrders] = useState<WorkOrder[]>(MOCK_ORDERS);
@@ -50,6 +108,11 @@ const App: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState('Skyline Plaza, NY');
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   
+  // Orders Filter State
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterDate, setFilterDate] = useState('3m'); // Default 3 months
+  const [filterEquipment, setFilterEquipment] = useState('all');
+
   // Smart Repair State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -60,9 +123,28 @@ const App: React.FC = () => {
   // Stats
   const stats = {
     progress: orders.filter(o => o.status === OrderStatus.IN_PROGRESS).length,
-    pending: orders.filter(o => o.status === OrderStatus.PENDING).length,
-    completed: 10 // Mock static
+    pending: orders.filter(o => o.status === OrderStatus.PENDING || o.status === OrderStatus.PENDING_VISIT).length,
+    completed: orders.filter(o => o.status === OrderStatus.COMPLETED || o.status === OrderStatus.PENDING_REVIEW).length
   };
+
+  // --- FILTERS MOVED TOP LEVEL ---
+  const filteredOrders = useMemo(() => {
+      return orders.filter(order => {
+          // 1. Status Filter
+          if (filterStatus !== 'All' && order.status !== filterStatus) return false;
+          
+          // 2. Equipment Filter
+          if (filterEquipment !== 'all' && order.equipmentId !== filterEquipment) return false;
+
+          // 3. Date Filter
+          const daysLimit = DATE_RANGES.find(r => r.value === filterDate)?.days || 90;
+          const cutoffDate = subDays(new Date(), daysLimit);
+          const orderDate = new Date(order.dateCreated);
+          if (orderDate < cutoffDate) return false;
+
+          return true;
+      }).sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()); // Sort Time Desc
+  }, [orders, filterStatus, filterDate, filterEquipment]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,12 +177,15 @@ const App: React.FC = () => {
     let description = "User reported issue";
     let urgency = UrgencyLevel.MEDIUM;
     let img = undefined;
+    let eqId = manualData?.equipmentId;
 
     if (isSmart && analysisResult) {
       title = analysisResult.title;
       description = analysisResult.description;
       urgency = analysisResult.urgency;
       img = selectedImage || undefined;
+      // Simple heuristic for smart mapping, in real app this comes from AI
+      eqId = 'other'; 
     } else if (manualData) {
       title = manualData.title;
       description = manualData.description;
@@ -111,10 +196,11 @@ const App: React.FC = () => {
       id: `WO-${Math.floor(Math.random() * 10000)}`,
       title: title,
       description: description,
-      location: `${currentLocation} • Lobby`, // Use current location
+      location: `${currentLocation} • Lobby`, 
       status: OrderStatus.PENDING,
       urgency: urgency,
-      dateCreated: 'Just now',
+      dateCreated: new Date().toISOString(),
+      equipmentId: eqId,
       imageUrl: img,
       timeline: [{ title: 'Work Order Created', timestamp: new Date().toLocaleTimeString(), isActive: true }]
     };
@@ -125,11 +211,19 @@ const App: React.FC = () => {
     setSelectedImage(null);
     setAnalysisResult(null);
     setActiveTab('orders');
+    // Reset filters to see new order
+    setFilterStatus('All');
+    setFilterDate('3m');
   };
 
   const handleLocationSelect = (loc: string) => {
     setCurrentLocation(loc);
     setIsLocationPickerOpen(false);
+  };
+
+  const formatDate = (isoString: string) => {
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
 
   // --- Views ---
@@ -213,44 +307,23 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity (Preview) */}
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-4 px-1">Recent Activity</h2>
         <div className="space-y-4">
-          {orders.map((order) => (
+          {orders.slice(0, 3).map((order) => (
             <Card key={order.id} className="relative overflow-hidden group">
-              {/* Highlight Bar */}
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === OrderStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-amber-500'}`} />
-              
               <div className="pl-3">
                 <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${order.urgency === UrgencyLevel.HIGH ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                      {order.urgency === UrgencyLevel.HIGH ? <AlertTriangle size={16} /> : <CheckCircle size={16} />}
-                    </div>
-                    <span className="text-xs font-mono text-slate-400 font-medium">{order.id}</span>
-                    <span className="text-xs text-slate-400">• {order.dateCreated}</span>
-                  </div>
-                  <StatusBadge status={order.status} />
+                   <div className="flex items-center gap-2">
+                     <span className="text-xs font-mono text-slate-400 font-medium">{order.id}</span>
+                     <span className="text-xs text-slate-400">• {formatDate(order.dateCreated)}</span>
+                   </div>
+                   <StatusBadge status={order.status} />
                 </div>
-
                 <h3 className="font-bold text-slate-800 text-lg mb-1">{order.title}</h3>
-                <p className="text-sm text-slate-500 mb-4">{order.location}</p>
-
-                {/* Timeline - Simplified for preview */}
-                {order.status === OrderStatus.IN_PROGRESS && (
-                  <div className="mt-4 bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="relative pl-4 space-y-4 border-l-2 border-slate-200 ml-1">
-                      {order.timeline.slice(0, 3).map((event, idx) => (
-                        <div key={idx} className="relative">
-                          <span className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 border-white ${event.isActive ? 'bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.2)]' : 'bg-slate-300'}`} />
-                          <p className={`text-xs font-semibold ${event.isActive ? 'text-blue-600' : 'text-slate-700'}`}>{event.title}</p>
-                          {event.description && <p className="text-[10px] text-slate-400 mt-0.5">{event.description}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm text-slate-500">{order.location}</p>
               </div>
             </Card>
           ))}
@@ -259,33 +332,125 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderOrders = () => (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">Work Orders</h2>
-      <div className="space-y-4 pb-20">
-        {orders.map(order => (
-          <Card key={order.id} className="flex flex-col gap-3">
-            <div className="flex justify-between">
-               <div>
-                  <h3 className="font-bold text-slate-800">{order.title}</h3>
-                  <p className="text-xs text-slate-400">{order.id} • {order.location}</p>
-               </div>
-               <StatusBadge status={order.status} />
-            </div>
-            {order.imageUrl && (
-              <div className="h-24 w-full bg-slate-100 rounded-lg overflow-hidden">
-                <img src={order.imageUrl} className="w-full h-full object-cover" alt="Issue" />
+  const renderOrders = () => {
+    return (
+        <div className="flex flex-col h-full bg-slate-50">
+          
+          {/* Sticky Header with Filters */}
+          <div className="sticky top-0 z-20 bg-white shadow-sm pb-1">
+              <div className="p-4 pb-2 flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-slate-800">Work Orders</h2>
+                  <div className="bg-slate-100 rounded-full p-2 text-slate-500">
+                      <Search size={20} />
+                  </div>
               </div>
-            )}
-             <div className="flex justify-between items-center pt-2 border-t border-slate-50 mt-1">
-                <UrgencyBadge level={order.urgency} />
-                <Button variant="ghost" className="!p-0 !h-auto text-indigo-600 text-xs">View Details <ChevronRight size={14}/></Button>
+
+              {/* Status Tabs (Horizontal Scroll) */}
+              <div className="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-3">
+                  {STATUS_FILTERS.map(status => (
+                      <button
+                          key={status}
+                          onClick={() => setFilterStatus(status)}
+                          className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                              filterStatus === status 
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' 
+                              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                          }`}
+                      >
+                          {status}
+                      </button>
+                  ))}
+              </div>
+
+              {/* Secondary Filter Bar */}
+              <div className="px-4 py-2 border-t border-slate-100 flex gap-2 overflow-x-auto no-scrollbar">
+                  {/* Date Filter */}
+                  <div className="relative flex items-center">
+                      <Calendar size={14} className="absolute left-3 text-slate-500 pointer-events-none"/>
+                      <select 
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg pl-9 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-100"
+                      >
+                         {DATE_RANGES.map(range => (
+                             <option key={range.value} value={range.value}>{range.label}</option>
+                         ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2 text-slate-400 pointer-events-none"/>
+                  </div>
+
+                  {/* Equipment Filter */}
+                  <div className="relative flex items-center">
+                      <MonitorSmartphone size={14} className="absolute left-3 text-slate-500 pointer-events-none"/>
+                      <select 
+                        value={filterEquipment}
+                        onChange={(e) => setFilterEquipment(e.target.value)}
+                        className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg pl-9 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-100"
+                      >
+                         <option value="all">All Devices</option>
+                         {EQUIPMENT_TYPES.map(eq => (
+                             <option key={eq.id} value={eq.id}>{eq.name}</option>
+                         ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2 text-slate-400 pointer-events-none"/>
+                  </div>
+              </div>
+          </div>
+
+          {/* Orders List */}
+          <div className="p-4 space-y-4 pb-24 overflow-y-auto no-scrollbar">
+             {filteredOrders.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                     <div className="bg-slate-100 p-4 rounded-full mb-3">
+                         <Filter size={32} />
+                     </div>
+                     <p className="text-sm font-medium">No orders found</p>
+                     <p className="text-xs">Try adjusting your filters</p>
+                 </div>
+             ) : (
+                 filteredOrders.map(order => (
+                    <Card key={order.id} className="flex flex-col gap-3 group active:scale-[0.99] transition-transform duration-200">
+                      <div className="flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{order.id}</span>
+                                <span className="text-[10px] text-slate-400 font-medium bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{formatDate(order.dateCreated)}</span>
+                            </div>
+                            <h3 className="font-bold text-slate-800 leading-tight">{order.title}</h3>
+                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><MapPin size={10}/> {order.location}</p>
+                        </div>
+                        <StatusBadge status={order.status} />
+                      </div>
+                      
+                      {order.imageUrl && (
+                        <div className="h-28 w-full bg-slate-100 rounded-xl overflow-hidden mt-1 border border-slate-100">
+                          <img src={order.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Issue" />
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center pt-3 border-t border-slate-50 mt-1">
+                          <div className="flex items-center gap-2">
+                             <UrgencyBadge level={order.urgency} />
+                             {order.equipmentId && (
+                                 <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-medium uppercase tracking-wide">
+                                     {EQUIPMENT_TYPES.find(e => e.id === order.equipmentId)?.name || 'Device'}
+                                 </span>
+                             )}
+                          </div>
+                          <Button variant="ghost" className="!p-0 !h-auto text-indigo-600 text-xs font-bold hover:bg-transparent">
+                              Details <ChevronRight size={14} className="ml-0.5"/>
+                          </Button>
+                      </div>
+                    </Card>
+                 ))
+             )}
+             <div className="text-center text-xs text-slate-300 py-4">
+                 Showing {filteredOrders.length} order{filteredOrders.length !== 1 && 's'}
              </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+          </div>
+        </div>
+    );
+  };
 
   // --- Modals ---
 
@@ -437,7 +602,7 @@ const App: React.FC = () => {
     const handleManualSubmit = () => {
        const title = currentEquipment ? currentEquipment.name : "Maintenance Request";
        const desc = `${selectedFault ? selectedFault + '. ' : ''}${remarks}`;
-       handleCreateOrder(false, { title, description: desc, image: manualPhoto });
+       handleCreateOrder(false, { title, description: desc, image: manualPhoto, equipmentId: selectedEq });
     };
 
     const handleManualPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -579,6 +744,14 @@ const App: React.FC = () => {
     >
       {activeTab === 'home' && renderHome()}
       {activeTab === 'orders' && renderOrders()}
+      {activeTab === 'mall' && (
+         <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300">
+               <ShoppingBag size={32} />
+            </div>
+            <p className="font-medium">Store Coming Soon</p>
+         </div>
+      )}
       {activeTab === 'settings' && (
         <div className="flex items-center justify-center h-full text-slate-400">Settings Placeholder</div>
       )}
