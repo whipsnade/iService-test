@@ -187,11 +187,22 @@ const App: React.FC = () => {
     completed: orders.filter(o => o.status === OrderStatus.COMPLETED || o.status === OrderStatus.PENDING_REVIEW).length
   };
 
-  // --- FILTERS MOVED TOP LEVEL ---
+  // --- FILTERS ---
   const filteredOrders = useMemo(() => {
       return orders.filter(order => {
           // 1. Status Filter
-          if (filterStatus !== 'All' && order.status !== filterStatus) return false;
+          if (filterStatus !== 'All') {
+            if (filterStatus === 'pending_group') {
+              // Grouped Pending (Pending Acceptance + Pending Visit)
+              if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.PENDING_VISIT) return false;
+            } else if (filterStatus === 'completed_group') {
+              // Grouped Completed (Completed + Pending Review)
+              if (order.status !== OrderStatus.COMPLETED && order.status !== OrderStatus.PENDING_REVIEW) return false;
+            } else {
+              // Exact Match
+              if (order.status !== filterStatus) return false;
+            }
+          }
           
           // 2. Equipment Filter
           if (filterEquipment !== 'all' && order.equipmentId !== filterEquipment) return false;
@@ -205,6 +216,14 @@ const App: React.FC = () => {
           return true;
       }).sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()); // Sort Time Desc
   }, [orders, filterStatus, filterDate, filterEquipment]);
+
+  const handleStatClick = (group: 'progress' | 'pending' | 'completed') => {
+    setActiveTab('orders');
+    setSelectedOrder(null);
+    if (group === 'progress') setFilterStatus(OrderStatus.IN_PROGRESS);
+    if (group === 'pending') setFilterStatus('pending_group');
+    if (group === 'completed') setFilterStatus('completed_group');
+  };
 
   const toggleOrderExpansion = (id: string) => {
     const newSet = new Set(expandedOrderIds);
@@ -383,15 +402,24 @@ const App: React.FC = () => {
 
       {/* Stats Cards */}
       <Card className="flex justify-between items-center !p-6">
-        <div className="text-center flex-1 border-r border-slate-100">
+        <div 
+          onClick={() => handleStatClick('progress')}
+          className="text-center flex-1 border-r border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
+        >
           <p className="text-sm text-slate-500 mb-1">In Progress</p>
           <p className="text-2xl font-bold text-indigo-600">{stats.progress}</p>
         </div>
-        <div className="text-center flex-1 border-r border-slate-100">
+        <div 
+          onClick={() => handleStatClick('pending')}
+          className="text-center flex-1 border-r border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
+        >
           <p className="text-sm text-slate-500 mb-1">Pending</p>
           <p className="text-2xl font-bold text-amber-500">{stats.pending}</p>
         </div>
-        <div className="text-center flex-1">
+        <div 
+          onClick={() => handleStatClick('completed')}
+          className="text-center flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
+        >
           <p className="text-sm text-slate-500 mb-1">Completed</p>
           <p className="text-2xl font-bold text-emerald-500">{stats.completed}</p>
         </div>
@@ -715,6 +743,13 @@ const App: React.FC = () => {
       return renderOrderDetail();
     }
 
+    const isTabActive = (status: string) => {
+      if (filterStatus === status) return true;
+      if (filterStatus === 'pending_group' && (status === OrderStatus.PENDING || status === OrderStatus.PENDING_VISIT)) return true;
+      if (filterStatus === 'completed_group' && (status === OrderStatus.COMPLETED || status === OrderStatus.PENDING_REVIEW)) return true;
+      return false;
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50">
           
@@ -734,7 +769,7 @@ const App: React.FC = () => {
                           key={status}
                           onClick={() => setFilterStatus(status)}
                           className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                              filterStatus === status 
+                              isTabActive(status) 
                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' 
                               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                           }`}
