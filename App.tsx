@@ -1,9 +1,9 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3 } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
-import { analyzeRepairImage } from './services/geminiService';
+import { analyzeRepairImage, analyzeRepairAudio } from './services/geminiService';
 
 // --- HELPERS ---
 const subDays = (date: Date, days: number) => new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
@@ -122,6 +122,7 @@ const App: React.FC = () => {
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('Skyline Plaza, NY');
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   
@@ -185,8 +186,8 @@ const App: React.FC = () => {
   const handleAnalyze = async (image: string) => {
     setIsAnalyzing(true);
     try {
-      // const result = await analyzeRepairImage(image);
-      // setAnalysisResult(result);
+      const result = await analyzeRepairImage(image);
+      setAnalysisResult(result);
     } catch (e) {
       console.error(e);
     } finally {
@@ -212,6 +213,7 @@ const App: React.FC = () => {
       title = manualData.title;
       description = manualData.description;
       img = manualData.image;
+      eqId = manualData.equipmentId;
     }
 
     const newOrder: WorkOrder = {
@@ -229,6 +231,7 @@ const App: React.FC = () => {
 
     setOrders([newOrder, ...orders]);
     setIsCameraOpen(false);
+    setIsVoiceOpen(false);
     setIsManualOpen(false);
     setSelectedImage(null);
     setAnalysisResult(null);
@@ -567,9 +570,6 @@ const App: React.FC = () => {
       return renderOrderDetail();
     }
 
-    // Logic: Filter and Sort logic used to be here (duplicate useMemo), now removed.
-    // Using `filteredOrders` from top level scope.
-
     return (
         <div className="flex flex-col h-full bg-slate-50">
           
@@ -891,6 +891,167 @@ const App: React.FC = () => {
     );
   };
 
+  const VoiceRepairModal = () => {
+    const [isRecording, setIsRecording] = useState(false);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+
+    if (!isVoiceOpen) return null;
+
+    const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorderRef.current.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+             const base64Audio = reader.result as string;
+             setIsAnalyzing(true);
+             const result = await analyzeRepairAudio(base64Audio);
+             setAnalysisResult(result);
+             setIsAnalyzing(false);
+          };
+        };
+
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("Microphone access denied or not available.");
+      }
+    };
+
+    const stopRecording = () => {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        // Stop all tracks to release mic
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+    };
+
+    const toggleRecording = () => {
+      if (isRecording) stopRecording();
+      else startRecording();
+    }
+
+    // Reset when closing
+    const handleClose = () => {
+      setIsVoiceOpen(false);
+      setAnalysisResult(null);
+      setIsAnalyzing(false);
+      setIsRecording(false);
+      if(mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+      }
+    }
+
+    return (
+       <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+         <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10">
+           
+           {/* Header */}
+           <div className="p-5 flex justify-between items-center border-b border-slate-50">
+             <div>
+                <h3 className="font-bold text-xl text-slate-800">Voice Report</h3>
+                <p className="text-xs text-slate-400">Describe the issue clearly</p>
+             </div>
+             <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400"/></button>
+           </div>
+
+           {/* Content */}
+           <div className="p-6 flex flex-col items-center justify-center flex-1 min-h-[300px]">
+              
+              {!isAnalyzing && !analysisResult && (
+                <>
+                  <div className="relative mb-8">
+                     {isRecording && (
+                       <>
+                         <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20"></div>
+                         <div className="absolute inset-[-12px] bg-red-500 rounded-full animate-pulse opacity-10"></div>
+                       </>
+                     )}
+                     <button 
+                       onClick={toggleRecording}
+                       className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isRecording ? 'bg-red-500 text-white scale-110' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'}`}
+                     >
+                        {isRecording ? <Square size={32} fill="currentColor"/> : <Mic size={40} />}
+                     </button>
+                  </div>
+
+                  <h4 className="font-bold text-slate-800 text-lg mb-2">
+                    {isRecording ? "Listening..." : "Tap to Record"}
+                  </h4>
+                  <p className="text-sm text-slate-500 text-center max-w-[240px] mb-8">
+                    {isRecording ? "Describe the problem clearly. Tap again to finish." : "Mention the location and the type of fault."}
+                  </p>
+
+                  {/* Examples */}
+                  <div className="w-full space-y-3">
+                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
+                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-indigo-500 shadow-sm"><Sparkles size={14}/></div>
+                        <p className="text-xs text-slate-600">"The AC in the lobby is leaking water"</p>
+                     </div>
+                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
+                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-sm"><Sparkles size={14}/></div>
+                        <p className="text-xs text-slate-600">"Elevator B buttons are not working"</p>
+                     </div>
+                  </div>
+                </>
+              )}
+
+              {isAnalyzing && (
+                 <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                    <Loader2 size={48} className="text-indigo-600 animate-spin mb-4" />
+                    <p className="font-bold text-slate-800">Analyzing Audio...</p>
+                    <p className="text-xs text-slate-400 mt-1">Identifying issue details</p>
+                 </div>
+              )}
+
+              {/* Result View */}
+              {!isAnalyzing && analysisResult && (
+                 <div className="w-full animate-in slide-in-from-bottom-5">
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6 flex items-start gap-3">
+                       <CheckCircle size={24} className="text-emerald-600 mt-0.5 shrink-0"/>
+                       <div>
+                          <p className="text-xs font-bold text-emerald-600 uppercase mb-0.5">Identified Issue</p>
+                          <h4 className="font-bold text-slate-800">{analysisResult.title}</h4>
+                          <p className="text-sm text-slate-600 mt-1">{analysisResult.description}</p>
+                       </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                           <p className="text-[10px] text-slate-400 font-bold uppercase">Category</p>
+                           <p className="font-semibold text-slate-700">{analysisResult.category}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                           <p className="text-[10px] text-slate-400 font-bold uppercase">Urgency</p>
+                           <UrgencyBadge level={analysisResult.urgency} />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                       <Button variant="secondary" onClick={() => setAnalysisResult(null)} className="flex-1">Retry</Button>
+                       <Button className="flex-[2]" onClick={() => handleCreateOrder(true)}>Create Ticket</Button>
+                    </div>
+                 </div>
+              )}
+
+           </div>
+         </div>
+       </div>
+    );
+  }
+
   // --- REVAMPED MANUAL FORM ---
   const ManualFormModal = () => {
     // Form Local State
@@ -1052,7 +1213,7 @@ const App: React.FC = () => {
     <Layout 
       activeTab={activeTab} 
       onTabChange={(tab) => { setActiveTab(tab); setSelectedOrder(null); }}
-      onScanClick={() => fileInputRef.current?.click()}
+      onVoiceClick={() => setIsVoiceOpen(true)}
     >
       {activeTab === 'home' && renderHome()}
       {activeTab === 'orders' && renderOrders()}
@@ -1069,6 +1230,7 @@ const App: React.FC = () => {
       )}
       
       <SmartRepairModal />
+      <VoiceRepairModal />
       <ManualFormModal />
       <LocationPickerModal />
       <EditRemarksModal />

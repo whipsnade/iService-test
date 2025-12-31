@@ -1,14 +1,14 @@
 import React from 'react';
-import { Home, ClipboardList, Settings, ScanLine, ShoppingBag } from 'lucide-react';
+import { Home, ClipboardList, Settings, Mic, ShoppingBag } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   onTabChange: (tab: string) => void;
-  onScanClick: () => void;
+  onVoiceClick: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onScanClick }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onVoiceClick }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
       {/* Content Area */}
@@ -33,12 +33,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
           <ClipboardList size={22} />
         </button>
 
-        {/* Center Action Button (Scan) */}
+        {/* Center Action Button (Voice) */}
         <button 
-          onClick={onScanClick}
-          className="flex items-center justify-center w-14 h-14 -mt-6 bg-indigo-600 rounded-full text-white shadow-lg shadow-indigo-300 transform transition-transform hover:scale-110 active:scale-95"
+          onClick={onVoiceClick}
+          className="flex items-center justify-center w-14 h-14 -mt-6 bg-indigo-600 rounded-full text-white shadow-lg shadow-indigo-300 transform transition-transform hover:scale-110 active:scale-95 group"
         >
-          <ScanLine size={24} />
+          <Mic size={24} className="group-active:scale-90 transition-transform" />
         </button>
 
         <button 
