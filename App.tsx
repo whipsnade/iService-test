@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, ShoppingBag, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
 import { analyzeRepairImage, analyzeRepairAudio } from './services/geminiService';
 
@@ -22,6 +22,41 @@ const MOCK_ENGINEER = {
   distance: '1.2km',
   avatarUrl: 'https://i.pravatar.cc/150?u=eng1'
 };
+
+const MOCK_NOTIFICATIONS = [
+  {
+    id: '1',
+    title: 'Engineer Assigned',
+    message: 'Alex Chen has been assigned to your ticket WO-9920. He will arrive in approximately 30 minutes.',
+    type: 'order',
+    isRead: false,
+    timestamp: subMinutes(NOW, 30).toISOString()
+  },
+  {
+    id: '2',
+    title: 'System Maintenance',
+    message: 'Scheduled server maintenance tonight from 2AM to 4AM. Service may be intermittent.',
+    type: 'system',
+    isRead: false,
+    timestamp: subDays(NOW, 0.5).toISOString()
+  },
+   {
+    id: '3',
+    title: 'Payment Successful',
+    message: 'Your payment for WO-9850 has been processed successfully.',
+    type: 'payment',
+    isRead: true,
+    timestamp: subDays(NOW, 2).toISOString()
+  },
+  {
+    id: '4',
+    title: 'Work Order Completed',
+    message: 'WO-9801 (Bathroom Leak) has been marked as completed by the engineer.',
+    type: 'order',
+    isRead: true,
+    timestamp: subDays(NOW, 45).toISOString()
+  }
+];
 
 const MOCK_ORDERS: WorkOrder[] = [
   {
@@ -119,10 +154,12 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [orders, setOrders] = useState<WorkOrder[]>(MOCK_ORDERS);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('Skyline Plaza, NY');
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   
@@ -169,6 +206,16 @@ const App: React.FC = () => {
       }).sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()); // Sort Time Desc
   }, [orders, filterStatus, filterDate, filterEquipment]);
 
+  const toggleOrderExpansion = (id: string) => {
+    const newSet = new Set(expandedOrderIds);
+    if (newSet.has(id)) {
+        newSet.delete(id);
+    } else {
+        newSet.add(id);
+    }
+    setExpandedOrderIds(newSet);
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -186,8 +233,8 @@ const App: React.FC = () => {
   const handleAnalyze = async (image: string) => {
     setIsAnalyzing(true);
     try {
-      // const result = await analyzeRepairImage(image);
-      // setAnalysisResult(result);
+      const result = await analyzeRepairImage(image);
+      setAnalysisResult(result);
     } catch (e) {
       console.error(e);
     } finally {
@@ -321,7 +368,10 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-3">
-          <button className="p-2 rounded-full hover:bg-slate-100 relative">
+          <button 
+            className="p-2 rounded-full hover:bg-slate-100 relative"
+            onClick={() => setIsNotificationsOpen(true)}
+          >
             <Bell size={24} className="text-slate-600" />
             <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
           </button>
@@ -382,26 +432,121 @@ const App: React.FC = () => {
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-4 px-1">Recent Activity</h2>
         <div className="space-y-4">
-          {orders.slice(0, 3).map((order) => (
-            <Card key={order.id} className="relative overflow-hidden group" onClick={() => handleOrderClick(order)}>
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === OrderStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-amber-500'}`} />
-              <div className="pl-3">
-                <div className="flex justify-between items-start mb-2">
-                   <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono text-slate-400 font-medium">{order.id}</span>
-                     <span className="text-xs text-slate-400">• {formatDate(order.dateCreated)}</span>
-                   </div>
-                   <StatusBadge status={order.status} />
+          {orders.slice(0, 3).map((order) => {
+            const isExpanded = expandedOrderIds.has(order.id);
+            const isCompleted = order.status === OrderStatus.COMPLETED;
+            
+            // Construct full lifecycle steps for the expanded view
+            const progressSteps = [
+                { title: 'Order Created', active: true, time: order.dateCreated },
+                { title: 'Engineer Assigned', active: !!order.engineer, time: order.engineer ? subMinutes(new Date(), 45).toISOString() : null },
+                { title: 'Diagnosis/Repair', active: order.status === OrderStatus.IN_PROGRESS || order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: 'Payment Pending', active: order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: 'Completed', active: isCompleted, time: null }
+            ];
+
+            return (
+              <Card 
+                key={order.id} 
+                className="relative overflow-hidden group transition-all duration-300 ease-in-out cursor-pointer" 
+                onClick={() => toggleOrderExpansion(order.id)}
+              >
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === OrderStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                <div className="pl-3">
+                  <div className="flex justify-between items-start mb-2">
+                     <div className="flex items-center gap-2">
+                       <span className="text-xs font-mono text-slate-400 font-medium">{order.id}</span>
+                       <span className="text-xs text-slate-400">• {formatDate(order.dateCreated)}</span>
+                     </div>
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }}
+                       className="transform active:scale-95 transition-transform"
+                     >
+                        <StatusBadge status={order.status} />
+                     </button>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-slate-800 text-lg mb-1">{order.title}</h3>
+                        <p className="text-sm text-slate-500">{order.location}</p>
+                    </div>
+                    {isExpanded ? <ChevronUp size={20} className="text-slate-300"/> : <ChevronDown size={20} className="text-slate-300"/>}
+                  </div>
+                  
+                  {/* Expanded Timeline */}
+                  {isExpanded && (
+                      <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300 origin-top">
+                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Order Progress</h4>
+                          <div className="space-y-4 pl-2 relative before:absolute before:left-[5px] before:top-1.5 before:bottom-1 before:w-[2px] before:bg-slate-100">
+                                {progressSteps.map((step, idx) => (
+                                     <div key={idx} className="relative flex items-start gap-3 z-10">
+                                        <div className={`w-3 h-3 rounded-full border-2 mt-0.5 shrink-0 transition-colors duration-300 ${step.active ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 bg-white'}`}></div>
+                                        <div>
+                                            <p className={`text-xs font-semibold leading-none mb-1 ${step.active ? 'text-slate-700' : 'text-slate-400'}`}>{step.title}</p>
+                                            {step.time && <p className="text-[10px] text-slate-400">{formatDate(step.time)}</p>}
+                                        </div>
+                                     </div>
+                                ))}
+                          </div>
+                      </div>
+                  )}
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg mb-1">{order.title}</h3>
-                <p className="text-sm text-slate-500">{order.location}</p>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>
   );
+
+  const renderNotifications = () => {
+    if (!isNotificationsOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-[60] bg-slate-50 flex flex-col animate-in slide-in-from-right duration-200">
+        {/* Header */}
+        <div className="bg-white p-4 pt-12 sm:pt-4 border-b border-slate-100 flex items-center gap-3 shadow-sm sticky top-0">
+           <button onClick={() => setIsNotificationsOpen(false)} className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
+              <ChevronLeft size={24} className="text-slate-600"/>
+           </button>
+           <h2 className="font-bold text-lg text-slate-800">Notifications</h2>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
+           {MOCK_NOTIFICATIONS.map(n => (
+              <div key={n.id} className={`p-4 rounded-2xl border flex gap-4 transition-all active:scale-[0.99] ${n.isRead ? 'bg-white border-slate-100' : 'bg-white border-indigo-100 shadow-[0_4px_20px_rgba(79,70,229,0.05)] relative overflow-hidden'}`}>
+                  {/* Unread Indicator Line */}
+                  {!n.isRead && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>}
+                  
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${n.isRead ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                      {/* Icon logic based on notification type */}
+                      {n.type === 'order' ? (
+                          n.isRead ? <FileText size={20}/> : <FileText size={20} className="fill-current"/>
+                      ) : n.type === 'system' ? (
+                          n.isRead ? <SettingsIcon size={20}/> : <SettingsIcon size={20} className="fill-current"/>
+                      ) : (
+                          n.isRead ? <MailOpen size={20}/> : <Mail size={20} className="fill-current"/>
+                      )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                     <div className="flex justify-between items-start mb-1">
+                        <h4 className={`text-sm truncate pr-2 ${n.isRead ? 'font-semibold text-slate-700' : 'font-bold text-slate-900'}`}>{n.title}</h4>
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap">{formatDate(n.timestamp)}</span>
+                     </div>
+                     <p className={`text-xs leading-relaxed line-clamp-2 ${n.isRead ? 'text-slate-500' : 'text-slate-600'}`}>{n.message}</p>
+                  </div>
+                  
+                  {!n.isRead && <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0"></div>}
+              </div>
+           ))}
+           <div className="text-center pt-4">
+               <p className="text-xs text-slate-400">No more notifications</p>
+           </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderOrderDetail = () => {
     if (!selectedOrder) return null;
@@ -1070,12 +1215,6 @@ const App: React.FC = () => {
        const desc = selectedFault ? selectedFault : "Reported Issue";
        // Ensure remarks are passed as remarks
        handleCreateOrder(false, { title, description: desc, image: manualPhoto, equipmentId: selectedEq });
-       // Note: The main handler needs update to support remarks, but for now we map it. 
-       // To support the new 'remarks' field properly, I will inject it directly into the state in handleCreateOrder if I could.
-       // Since handleCreateOrder constructs the object, I'll rely on the fact that I just updated it to accept remarks in the state update logic below if I were rewriting it fully.
-       // For this patch, the "Remarks" in the manual form are currently concatenated to description in the original code. 
-       // I'll leave the manual form behavior as is (concat) or update it. 
-       // Let's update handleCreateOrder logic slightly in the component body above to separate them if passed.
     };
 
     const handleManualPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1235,6 +1374,7 @@ const App: React.FC = () => {
       <LocationPickerModal />
       <EditRemarksModal />
       <PaymentModal />
+      {renderNotifications()}
     </Layout>
   );
 };

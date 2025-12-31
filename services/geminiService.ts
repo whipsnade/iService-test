@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, UrgencyLevel } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: 'AIzaSyCC7sOqha9tRNKnlZDvsjzHT2y8sDIPVEM' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Shared schema for consistency
 const RESPONSE_SCHEMA = {
