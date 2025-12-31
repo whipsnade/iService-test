@@ -23,6 +23,17 @@ export interface TimelineEvent {
   isActive: boolean;
 }
 
+export interface Engineer {
+  id: string;
+  name: string;
+  phone: string;
+  rating: number;
+  latitude: number;
+  longitude: number;
+  distance: string; // e.g., "2.5km"
+  avatarUrl?: string;
+}
+
 export interface WorkOrder {
   id: string;
   title: string;
@@ -34,6 +45,9 @@ export interface WorkOrder {
   imageUrl?: string;
   timeline: TimelineEvent[];
   description?: string;
+  remarks?: string; // User editable remarks
+  engineer?: Engineer;
+  cost?: number;
 }
 
 export interface AnalysisResult {
