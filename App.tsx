@@ -266,8 +266,8 @@ const App: React.FC = () => {
   const handleAnalyze = async (image: string) => {
     setIsAnalyzing(true);
     try {
-      const result = await analyzeRepairImage(image);
-      setAnalysisResult(result);
+      // const result = await analyzeRepairImage(image);
+      // setAnalysisResult(result);
     } catch (e) {
       console.error(e);
     } finally {
