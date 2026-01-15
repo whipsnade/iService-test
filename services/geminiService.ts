@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, UrgencyLevel } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: 'AIzaSyCC7sOqha9tRNKnlZDvsjzHT2y8sDIPVEM' });
-
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Shared schema for consistency
 const RESPONSE_SCHEMA = {
@@ -34,9 +33,9 @@ export const analyzeRepairImage = async (base64Image: string): Promise<AnalysisR
             },
           },
           {
-            text: `Analyze this image for a property maintenance application. 
-                   Identify the damage or maintenance issue shown.
-                   Return a structured JSON response with a short title, a concise description of the problem, an urgency level (Low, Medium, High, Critical), and a general category (e.g., Plumbing, Electrical, HVAC, Structural).`
+            text: `分析这张物业维修应用的照片。
+                   识别照片中显示的损坏或维修问题。
+                   返回一个结构化的 JSON 响应，包含简短的中文标题、问题的简洁中文描述、紧急程度（一般、中等、紧急、严重）以及一般类别（例如：水管、电力、暖通空调、结构）。`
           },
         ],
       },
@@ -54,10 +53,10 @@ export const analyzeRepairImage = async (base64Image: string): Promise<AnalysisR
   } catch (error) {
     console.error("Error analyzing image:", error);
     return {
-      title: "Unknown Issue",
-      description: "Could not analyze the image automatically. Please add details manually.",
+      title: "无法识别",
+      description: "无法自动分析图片，请手动添加详细信息。",
       urgency: UrgencyLevel.MEDIUM,
-      category: "General"
+      category: "其他"
     };
   }
 };
@@ -81,9 +80,9 @@ export const analyzeRepairAudio = async (base64Audio: string): Promise<AnalysisR
             },
           },
           {
-            text: `Listen to this voice report for a property maintenance application. 
-                   Extract the maintenance issue described.
-                   Return a structured JSON response with a short title (e.g., "Leaking AC"), a concise description based on what was said, an inferred urgency level, and a category.`
+            text: `听取这段物业维修应用的语音报告。
+                   提取描述的维修问题。
+                   返回一个结构化的 JSON 响应，包含简短的中文标题（例如：“空调漏水”）、基于语音内容的简洁中文描述、推断的紧急程度以及类别。`
           },
         ],
       },
@@ -101,10 +100,10 @@ export const analyzeRepairAudio = async (base64Audio: string): Promise<AnalysisR
   } catch (error) {
     console.error("Error analyzing audio:", error);
     return {
-      title: "Voice Report",
-      description: "Could not transcribe audio. Please verify your connection or try again.",
+      title: "语音报告",
+      description: "无法转录音频。请检查网络连接或重试。",
       urgency: UrgencyLevel.MEDIUM,
-      category: "General"
+      category: "其他"
     };
   }
 };

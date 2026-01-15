@@ -1,19 +1,19 @@
 export enum OrderStatus {
-  PENDING = 'Pending Acceptance',    // 待接单
-  PENDING_VISIT = 'Pending Visit',   // 待上门
-  IN_PROGRESS = 'In Progress',       // 维修中
-  PENDING_PAYMENT = 'Pending Payment', // 待付款
-  REFUNDING = 'Refunding',           // 退款中
-  COMPLETED = 'Completed',           // 已完成
-  PENDING_REVIEW = 'Pending Review', // 待评价
-  CANCELLED = 'Cancelled'            // 已取消
+  PENDING = '待接单',          // Pending Acceptance
+  PENDING_VISIT = '待上门',    // Pending Visit
+  IN_PROGRESS = '维修中',      // In Progress
+  PENDING_PAYMENT = '待支付',  // Pending Payment
+  REFUNDING = '退款中',        // Refunding
+  COMPLETED = '已完成',        // Completed
+  PENDING_REVIEW = '待评价',   // Pending Review
+  CANCELLED = '已取消'         // Cancelled
 }
 
 export enum UrgencyLevel {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
-  CRITICAL = 'Critical'
+  LOW = '一般',      // Low
+  MEDIUM = '中等',   // Medium
+  HIGH = '紧急',     // High
+  CRITICAL = '严重'  // Critical
 }
 
 export interface TimelineEvent {

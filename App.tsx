@@ -14,8 +14,8 @@ const NOW = new Date();
 
 const MOCK_ENGINEER = {
   id: 'ENG-001',
-  name: 'Alex Chen',
-  phone: '555-0123',
+  name: '王师傅',
+  phone: '138-0000-0000',
   rating: 4.8,
   latitude: 40.7128,
   longitude: -74.0060,
@@ -26,32 +26,32 @@ const MOCK_ENGINEER = {
 const MOCK_NOTIFICATIONS = [
   {
     id: '1',
-    title: 'Engineer Assigned',
-    message: 'Alex Chen has been assigned to your ticket WO-9920. He will arrive in approximately 30 minutes.',
+    title: '工程师已指派',
+    message: '王师傅 已接单（工单号 WO-9920）。他将在约30分钟后到达。',
     type: 'order',
     isRead: false,
     timestamp: subMinutes(NOW, 30).toISOString()
   },
   {
     id: '2',
-    title: 'System Maintenance',
-    message: 'Scheduled server maintenance tonight from 2AM to 4AM. Service may be intermittent.',
+    title: '系统维护通知',
+    message: '计划于今晚凌晨2点至4点进行服务器维护，服务可能会间歇性中断。',
     type: 'system',
     isRead: false,
     timestamp: subDays(NOW, 0.5).toISOString()
   },
    {
     id: '3',
-    title: 'Payment Successful',
-    message: 'Your payment for WO-9850 has been processed successfully.',
+    title: '支付成功',
+    message: '工单 WO-9850 的付款已成功处理。',
     type: 'payment',
     isRead: true,
     timestamp: subDays(NOW, 2).toISOString()
   },
   {
     id: '4',
-    title: 'Work Order Completed',
-    message: 'WO-9801 (Bathroom Leak) has been marked as completed by the engineer.',
+    title: '工单已完成',
+    message: '工程师已标记工单 WO-9801（卫生间漏水）为已完成。',
     type: 'order',
     isRead: true,
     timestamp: subDays(NOW, 45).toISOString()
@@ -61,68 +61,68 @@ const MOCK_NOTIFICATIONS = [
 const MOCK_ORDERS: WorkOrder[] = [
   {
     id: 'WO-9925',
-    title: 'POS Connection Failure',
-    location: 'Bar Area • 1F',
+    title: 'POS机连接失败',
+    location: '吧台区域 • 1楼',
     status: OrderStatus.PENDING,
     urgency: UrgencyLevel.HIGH,
     dateCreated: subMinutes(NOW, 10).toISOString(), // 10 mins ago (Free cancel window)
     equipmentId: 'pos',
-    timeline: [{ title: 'Order Created', timestamp: subMinutes(NOW, 10).toISOString(), isActive: true }],
-    description: "Screen frozen, not responding to touch.",
-    remarks: "Please come to the side entrance."
+    timeline: [{ title: '工单已创建', timestamp: subMinutes(NOW, 10).toISOString(), isActive: true }],
+    description: "屏幕冻结，触摸无反应。",
+    remarks: "请从侧门进入。"
   },
   {
     id: 'WO-9920',
-    title: 'Ice Machine Malfunction',
-    location: 'Main Kitchen • B1',
+    title: '制冰机故障',
+    location: '主厨房 • B1层',
     status: OrderStatus.PENDING_VISIT,
     urgency: UrgencyLevel.HIGH,
     dateCreated: subDays(NOW, 0.1).toISOString(), // 2.4 hours ago
     equipmentId: 'other',
     timeline: [
-      { title: 'Order Created', timestamp: subDays(NOW, 0.1).toISOString(), isActive: false },
-      { title: 'Engineer Assigned', timestamp: subMinutes(NOW, 30).toISOString(), isActive: true }
+      { title: '工单已创建', timestamp: subDays(NOW, 0.1).toISOString(), isActive: false },
+      { title: '工程师已指派', timestamp: subMinutes(NOW, 30).toISOString(), isActive: true }
     ],
     engineer: MOCK_ENGINEER,
-    description: "Making loud grinding noise and no ice.",
-    remarks: "Gate code is 1234"
+    description: "发出巨大的研磨声，且不制冰。",
+    remarks: "门禁密码是 1234"
   },
   {
     id: 'WO-9918',
-    title: 'HVAC Maintenance',
-    location: 'Rooftop Unit 3',
+    title: '空调系统维护',
+    location: '屋顶机组 3号',
     status: OrderStatus.IN_PROGRESS,
     urgency: UrgencyLevel.MEDIUM,
     dateCreated: subDays(NOW, 3).toISOString(),
     equipmentId: 'hvac',
     timeline: [
-      { title: 'Order Created', timestamp: subDays(NOW, 3).toISOString(), isActive: false },
-      { title: 'Engineer Arrived', timestamp: subDays(NOW, 3).toISOString(), isActive: false },
-      { title: 'Diagnosis Complete', timestamp: subDays(NOW, 3).toISOString(), isActive: true }
+      { title: '工单已创建', timestamp: subDays(NOW, 3).toISOString(), isActive: false },
+      { title: '工程师已到达', timestamp: subDays(NOW, 3).toISOString(), isActive: false },
+      { title: '诊断完成', timestamp: subDays(NOW, 3).toISOString(), isActive: true }
     ],
     engineer: MOCK_ENGINEER,
-    description: "Scheduled maintenance check."
+    description: "定期维护检查。"
   },
   {
     id: 'WO-9850',
-    title: 'Lobby Light Flickering',
-    location: 'Main Entrance',
+    title: '大堂灯光闪烁',
+    location: '主入口',
     status: OrderStatus.PENDING_PAYMENT,
     urgency: UrgencyLevel.LOW,
     dateCreated: subDays(NOW, 15).toISOString(),
     equipmentId: 'light',
     timeline: [
-      { title: 'Order Created', timestamp: subDays(NOW, 15).toISOString(), isActive: false },
-      { title: 'Repaired', timestamp: subDays(NOW, 15).toISOString(), isActive: true }
+      { title: '工单已创建', timestamp: subDays(NOW, 15).toISOString(), isActive: false },
+      { title: '维修完成', timestamp: subDays(NOW, 15).toISOString(), isActive: true }
     ],
     engineer: MOCK_ENGINEER,
     cost: 120.00,
-    description: "Bulb flickering intermittently."
+    description: "灯泡间歇性闪烁。"
   },
   {
     id: 'WO-9801',
-    title: 'Bathroom Leak',
-    location: 'Restroom • 2F',
+    title: '卫生间漏水',
+    location: '洗手间 • 2楼',
     status: OrderStatus.COMPLETED,
     urgency: UrgencyLevel.CRITICAL,
     dateCreated: subDays(NOW, 45).toISOString(),
@@ -134,20 +134,20 @@ const MOCK_ORDERS: WorkOrder[] = [
 ];
 
 const EQUIPMENT_TYPES = [
-  { id: 'pos', name: 'POS Unit', icon: Calculator, issues: ['Cannot Power On', 'Network Offline', 'Printer Jammed', 'Touch Screen Fail'] },
-  { id: 'hvac', name: 'HVAC/AC', icon: Fan, issues: ['Not Cooling', 'Water Leaking', 'Loud Noise', 'Bad Odor'] },
-  { id: 'light', name: 'Lighting', icon: Lightbulb, issues: ['Bulb Burnt Out', 'Flickering', 'Switch Broken', 'Fixture Loose'] },
-  { id: 'plumbing', name: 'Plumbing', icon: Droplets, issues: ['Tap Leaking', 'Drain Clogged', 'No Hot Water', 'Low Pressure'] },
-  { id: 'other', name: 'Other', icon: HelpCircle, issues: ['General Damage', 'Cleaning Needed', 'Safety Hazard', 'Furniture Broken'] }
+  { id: 'pos', name: 'POS终端', icon: Calculator, issues: ['无法开机', '网络离线', '打印机卡纸', '触摸屏失灵'] },
+  { id: 'hvac', name: '空调暖通', icon: Fan, issues: ['不制冷/热', '漏水', '噪音大', '异味'] },
+  { id: 'light', name: '照明灯具', icon: Lightbulb, issues: ['灯泡烧坏', '闪烁', '开关损坏', '灯具松动'] },
+  { id: 'plumbing', name: '管道水路', icon: Droplets, issues: ['水龙头漏水', '下水道堵塞', '无热水', '水压低'] },
+  { id: 'other', name: '其他杂项', icon: HelpCircle, issues: ['一般损坏', '需要清洁', '安全隐患', '家具破损'] }
 ];
 
-const STATUS_FILTERS = ['All', ...Object.values(OrderStatus)];
+const STATUS_FILTERS = ['全部', ...Object.values(OrderStatus)];
 const DATE_RANGES = [
-  { label: '10 Days', value: '10d', days: 10 },
-  { label: '1 Month', value: '1m', days: 30 },
-  { label: '3 Months', value: '3m', days: 90 },
-  { label: '6 Months', value: '6m', days: 180 },
-  { label: '1 Year', value: '1y', days: 365 },
+  { label: '近10天', value: '10d', days: 10 },
+  { label: '近1个月', value: '1m', days: 30 },
+  { label: '近3个月', value: '3m', days: 90 },
+  { label: '近半年', value: '6m', days: 180 },
+  { label: '近1年', value: '1y', days: 365 },
 ];
 
 const App: React.FC = () => {
@@ -160,7 +160,7 @@ const App: React.FC = () => {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState('Skyline Plaza, NY');
+  const [currentLocation, setCurrentLocation] = useState('上海中心大厦, 上海');
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   
   // Detail View States
@@ -169,7 +169,7 @@ const App: React.FC = () => {
   const [editRemarksValue, setEditRemarksValue] = useState('');
   
   // Orders Filter State
-  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('全部');
   const [filterDate, setFilterDate] = useState('3m'); // Default 3 months
   const [filterEquipment, setFilterEquipment] = useState('all');
 
@@ -180,7 +180,7 @@ const App: React.FC = () => {
   
   // Chat State
   const [chatMessages, setChatMessages] = useState<{id: string, text?: string, sender: 'user' | 'agent', order?: WorkOrder}[]>([
-      { id: '1', text: "Hello! I'm your support assistant. You can select an order below to report an issue or ask me anything.", sender: 'agent' }
+      { id: '1', text: "您好！我是您的智能客服助手。您可以在下方选择工单进行反馈，或直接向我提问。", sender: 'agent' }
   ]);
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -205,7 +205,7 @@ const App: React.FC = () => {
   const filteredOrders = useMemo(() => {
       return orders.filter(order => {
           // 1. Status Filter
-          if (filterStatus !== 'All') {
+          if (filterStatus !== '全部') {
             if (filterStatus === 'pending_group') {
               // Grouped Pending (Pending Acceptance + Pending Visit)
               if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.PENDING_VISIT) return false;
@@ -266,8 +266,8 @@ const App: React.FC = () => {
   const handleAnalyze = async (image: string) => {
     setIsAnalyzing(true);
     try {
-      // const result = await analyzeRepairImage(image);
-      // setAnalysisResult(result);
+      const result = await analyzeRepairImage(image);
+      setAnalysisResult(result);
     } catch (e) {
       console.error(e);
     } finally {
@@ -276,8 +276,8 @@ const App: React.FC = () => {
   };
 
   const handleCreateOrder = (isSmart: boolean, manualData?: any) => {
-    let title = "Manual Report";
-    let description = "User reported issue";
+    let title = "手动报修";
+    let description = "用户报告的问题";
     let urgency = UrgencyLevel.MEDIUM;
     let img = undefined;
     let eqId = manualData?.equipmentId;
@@ -300,13 +300,13 @@ const App: React.FC = () => {
       id: `WO-${Math.floor(Math.random() * 10000)}`,
       title: title,
       description: description,
-      location: `${currentLocation} • Lobby`, 
+      location: `${currentLocation} • 大堂`, 
       status: OrderStatus.PENDING,
       urgency: urgency,
       dateCreated: new Date().toISOString(),
       equipmentId: eqId,
       imageUrl: img,
-      timeline: [{ title: 'Work Order Created', timestamp: new Date().toLocaleTimeString(), isActive: true }]
+      timeline: [{ title: '工单已创建', timestamp: new Date().toLocaleTimeString(), isActive: true }]
     };
 
     setOrders([newOrder, ...orders]);
@@ -317,7 +317,7 @@ const App: React.FC = () => {
     setAnalysisResult(null);
     setActiveTab('orders');
     // Reset filters to see new order
-    setFilterStatus('All');
+    setFilterStatus('全部');
     setFilterDate('3m');
   };
 
@@ -346,11 +346,11 @@ const App: React.FC = () => {
     const created = new Date(selectedOrder.dateCreated);
     const diffMins = (now.getTime() - created.getTime()) / 60000;
     
-    let message = "Are you sure you want to cancel?";
+    let message = "您确定要取消吗？";
     if (diffMins > 15) {
-      message = "Cancelling after 15 minutes will incur a visit fee. Continue?";
+      message = "15分钟后取消将收取上门费。是否继续？";
     } else {
-      message = "Free cancellation available within 15 minutes. Cancel now?";
+      message = "15分钟内可免费取消。是否现在取消？";
     }
 
     if (window.confirm(message)) {
@@ -364,11 +364,11 @@ const App: React.FC = () => {
     if (!selectedOrder) return;
     // Simulate payment processing
     setTimeout(() => {
-       const updated = { ...selectedOrder, status: OrderStatus.COMPLETED, timeline: [...selectedOrder.timeline, { title: 'Payment Confirmed', timestamp: new Date().toISOString(), isActive: true }] };
+       const updated = { ...selectedOrder, status: OrderStatus.COMPLETED, timeline: [...selectedOrder.timeline, { title: '支付确认', timestamp: new Date().toISOString(), isActive: true }] };
        setOrders(orders.map(o => o.id === selectedOrder.id ? updated : o));
        setSelectedOrder(updated);
        setIsPaymentOpen(false);
-       alert("Payment Successful!");
+       alert("支付成功！");
     }, 1500);
   };
 
@@ -381,14 +381,14 @@ const App: React.FC = () => {
     
     // Fake reply
     setTimeout(() => {
-        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: "I've received your message. An agent will be with you shortly.", sender: 'agent' }]);
+        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: "我已收到您的消息，稍后将有客服与您联系。", sender: 'agent' }]);
     }, 1000);
   };
 
   const handleSendOrder = (order: WorkOrder) => {
     const newMsg = { 
         id: Date.now().toString(), 
-        text: `I have a question about this work order: ${order.title}`, 
+        text: `我对这个工单有问题: ${order.title}`, 
         sender: 'user' as const,
         order: order
     };
@@ -396,13 +396,13 @@ const App: React.FC = () => {
 
     // Fake reply
     setTimeout(() => {
-        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: `Checking status for ${order.id}... It is currently ${order.status}.`, sender: 'agent' }]);
+        setChatMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: `正在为您查询 ${order.id} 的状态... 当前状态为：${order.status}。`, sender: 'agent' }]);
     }, 1000);
   }
 
   const formatDate = (isoString: string) => {
       const date = new Date(isoString);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
 
   // --- Views ---
@@ -420,7 +420,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-sm text-slate-500 font-medium flex items-center gap-1">
-              Current Location <ChevronRight size={12}/>
+              当前位置 <ChevronRight size={12}/>
             </h1>
             <div className="flex items-center gap-1 font-bold text-slate-800">
               <MapPin size={16} className="text-emerald-600" />
@@ -448,21 +448,21 @@ const App: React.FC = () => {
           onClick={() => handleStatClick('progress')}
           className="text-center flex-1 border-r border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
         >
-          <p className="text-sm text-slate-500 mb-1">In Progress</p>
+          <p className="text-sm text-slate-500 mb-1">进行中</p>
           <p className="text-2xl font-bold text-indigo-600">{stats.progress}</p>
         </div>
         <div 
           onClick={() => handleStatClick('pending')}
           className="text-center flex-1 border-r border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
         >
-          <p className="text-sm text-slate-500 mb-1">Pending</p>
+          <p className="text-sm text-slate-500 mb-1">待处理</p>
           <p className="text-2xl font-bold text-amber-500">{stats.pending}</p>
         </div>
         <div 
           onClick={() => handleStatClick('completed')}
           className="text-center flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-2 -my-2 rounded-lg"
         >
-          <p className="text-sm text-slate-500 mb-1">Completed</p>
+          <p className="text-sm text-slate-500 mb-1">已完成</p>
           <p className="text-2xl font-bold text-emerald-500">{stats.completed}</p>
         </div>
       </Card>
@@ -476,7 +476,7 @@ const App: React.FC = () => {
           <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
             <PenTool size={24} />
           </div>
-          <span className="font-semibold text-slate-700">Manual Report</span>
+          <span className="font-semibold text-slate-700">手动报修</span>
         </button>
 
         <button 
@@ -486,7 +486,7 @@ const App: React.FC = () => {
           <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
             <Camera size={24} />
           </div>
-          <span className="font-semibold text-slate-700">Smart Identify</span>
+          <span className="font-semibold text-slate-700">智能识别</span>
         </button>
         <input 
           type="file" 
@@ -500,7 +500,7 @@ const App: React.FC = () => {
 
       {/* Recent Activity (Preview) */}
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-4 px-1">Recent Activity</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-4 px-1">最近动态</h2>
         <div className="space-y-4">
           {orders.slice(0, 3).map((order) => {
             const isExpanded = expandedOrderIds.has(order.id);
@@ -508,11 +508,11 @@ const App: React.FC = () => {
             
             // Construct full lifecycle steps for the expanded view
             const progressSteps = [
-                { title: 'Order Created', active: true, time: order.dateCreated },
-                { title: 'Engineer Assigned', active: !!order.engineer, time: order.engineer ? subMinutes(new Date(), 45).toISOString() : null },
-                { title: 'Diagnosis/Repair', active: order.status === OrderStatus.IN_PROGRESS || order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
-                { title: 'Payment Pending', active: order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
-                { title: 'Completed', active: isCompleted, time: null }
+                { title: '工单已创建', active: true, time: order.dateCreated },
+                { title: '工程师已指派', active: !!order.engineer, time: order.engineer ? subMinutes(new Date(), 45).toISOString() : null },
+                { title: '诊断/维修', active: order.status === OrderStatus.IN_PROGRESS || order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: '待支付', active: order.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: '已完成', active: isCompleted, time: null }
             ];
 
             return (
@@ -546,7 +546,7 @@ const App: React.FC = () => {
                   {/* Expanded Timeline */}
                   {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300 origin-top">
-                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Order Progress</h4>
+                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">工单进度</h4>
                           <div className="space-y-4 pl-2 relative before:absolute before:left-[5px] before:top-1.5 before:bottom-1 before:w-[2px] before:bg-slate-100">
                                 {progressSteps.map((step, idx) => (
                                      <div key={idx} className="relative flex items-start gap-3 z-10">
@@ -579,7 +579,7 @@ const App: React.FC = () => {
            <button onClick={() => setIsNotificationsOpen(false)} className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
               <ChevronLeft size={24} className="text-slate-600"/>
            </button>
-           <h2 className="font-bold text-lg text-slate-800">Notifications</h2>
+           <h2 className="font-bold text-lg text-slate-800">消息通知</h2>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
@@ -611,7 +611,7 @@ const App: React.FC = () => {
               </div>
            ))}
            <div className="text-center pt-4">
-               <p className="text-xs text-slate-400">No more notifications</p>
+               <p className="text-xs text-slate-400">没有更多通知了</p>
            </div>
         </div>
       </div>
@@ -633,7 +633,7 @@ const App: React.FC = () => {
             <ChevronLeft size={24} className="text-slate-700"/>
           </button>
           <div className="flex-1">
-            <h2 className="font-bold text-slate-800 text-lg">Work Order Details</h2>
+            <h2 className="font-bold text-slate-800 text-lg">工单详情</h2>
             <p className="text-xs text-slate-500 font-mono">{selectedOrder.id}</p>
           </div>
           <StatusBadge status={selectedOrder.status} />
@@ -663,9 +663,9 @@ const App: React.FC = () => {
               {selectedOrder.engineer ? (
                 <>
                   <div>
-                    <p className="text-xs text-slate-400 font-medium">Engineer Location</p>
+                    <p className="text-xs text-slate-400 font-medium">工程师位置</p>
                     <p className="font-bold text-slate-800 text-sm flex items-center gap-1">
-                      <MapIcon size={14} className="text-emerald-500"/> {selectedOrder.engineer.distance} away
+                      <MapIcon size={14} className="text-emerald-500"/> 距离 {selectedOrder.engineer.distance}
                     </p>
                   </div>
                   <a href={`tel:${selectedOrder.engineer.phone}`} className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
@@ -675,7 +675,7 @@ const App: React.FC = () => {
               ) : (
                 <div className="flex items-center gap-2 text-slate-500 w-full justify-center py-1">
                    <Clock size={16} className="animate-spin-slow"/>
-                   <span className="text-sm font-medium">Waiting for engineer...</span>
+                   <span className="text-sm font-medium">等待工程师接单...</span>
                 </div>
               )}
             </div>
@@ -689,12 +689,12 @@ const App: React.FC = () => {
                </div>
                <div>
                  <h3 className="font-bold text-slate-800">{selectedOrder.title}</h3>
-                 <p className="text-sm text-slate-500 mt-1 leading-relaxed">{selectedOrder.description || "No description provided."}</p>
+                 <p className="text-sm text-slate-500 mt-1 leading-relaxed">{selectedOrder.description || "无详细描述。"}</p>
                  <div className="flex gap-2 mt-2">
                     <UrgencyBadge level={selectedOrder.urgency} />
                     {selectedOrder.equipmentId && (
                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wide">
-                          {EQUIPMENT_TYPES.find(e => e.id === selectedOrder.equipmentId)?.name || 'Device'}
+                          {EQUIPMENT_TYPES.find(e => e.id === selectedOrder.equipmentId)?.name || '设备'}
                        </span>
                     )}
                  </div>
@@ -709,31 +709,31 @@ const App: React.FC = () => {
 
              <div className="pt-4 border-t border-slate-100">
                 <div className="flex justify-between items-center mb-2">
-                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Remarks</span>
+                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">备注</span>
                    <button 
                      onClick={() => { setEditRemarksValue(selectedOrder.remarks || ''); setIsEditRemarksOpen(true); }}
                      className="text-xs text-indigo-600 font-bold flex items-center gap-1 hover:bg-indigo-50 px-2 py-1 rounded"
                    >
-                     <Edit3 size={12}/> Edit
+                     <Edit3 size={12}/> 编辑
                    </button>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl text-sm text-slate-600 border border-slate-100">
-                  {selectedOrder.remarks || <span className="text-slate-400 italic">No additional remarks.</span>}
+                  {selectedOrder.remarks || <span className="text-slate-400 italic">无额外备注。</span>}
                 </div>
              </div>
           </Card>
 
           {/* Timeline */}
           <Card>
-            <h3 className="font-bold text-slate-800 mb-4 text-sm">Order Progress</h3>
+            <h3 className="font-bold text-slate-800 mb-4 text-sm">工单进度</h3>
             <div className="relative pl-2 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
               {/* Combine static timeline with dynamic states for demo */}
               {[
-                { title: 'Order Created', active: true, time: selectedOrder.dateCreated },
-                { title: 'Engineer Assigned', active: !!selectedOrder.engineer, time: selectedOrder.engineer ? subMinutes(new Date(), 45).toISOString() : null },
-                { title: 'Diagnosis/Repair', active: selectedOrder.status === OrderStatus.IN_PROGRESS || selectedOrder.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
-                { title: 'Payment Pending', active: selectedOrder.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
-                { title: 'Completed', active: isCompleted, time: null }
+                { title: '工单已创建', active: true, time: selectedOrder.dateCreated },
+                { title: '工程师已指派', active: !!selectedOrder.engineer, time: selectedOrder.engineer ? subMinutes(new Date(), 45).toISOString() : null },
+                { title: '诊断/维修', active: selectedOrder.status === OrderStatus.IN_PROGRESS || selectedOrder.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: '待支付', active: selectedOrder.status === OrderStatus.PENDING_PAYMENT || isCompleted, time: null },
+                { title: '已完成', active: isCompleted, time: null }
               ].map((step, idx) => (
                 <div key={idx} className="relative flex items-start gap-3 z-10">
                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center bg-white ${step.active ? 'border-emerald-500 text-emerald-500' : 'border-slate-200 text-slate-300'}`}>
@@ -753,25 +753,25 @@ const App: React.FC = () => {
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white border-t border-slate-100 z-40 flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
            {canCancel && (
              <Button variant="secondary" className="flex-1 border-red-100 text-red-600 hover:bg-red-50" onClick={handleCancelOrder}>
-               Cancel Order
+               取消工单
              </Button>
            )}
            
            {isPayable && (
               <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" onClick={() => setIsPaymentOpen(true)}>
-                Confirm & Pay
+                确认并支付
               </Button>
            )}
 
            {!canCancel && !isPayable && !isCompleted && (
               <Button variant="ghost" className="flex-1 cursor-default opacity-50 bg-slate-100">
-                 In Progress
+                 进行中
               </Button>
            )}
 
            {isCompleted && (
               <Button variant="outline" className="flex-1 border-emerald-500 text-emerald-600" disabled>
-                 Completed
+                 已完成
               </Button>
            )}
         </div>
@@ -798,7 +798,7 @@ const App: React.FC = () => {
           {/* Sticky Header with Filters */}
           <div className="sticky top-0 z-20 bg-white shadow-sm pb-1">
               <div className="p-4 pb-2 flex justify-between items-center">
-                  <h2 className="text-2xl font-bold text-slate-800">Work Orders</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">我的工单</h2>
                   <div className="bg-slate-100 rounded-full p-2 text-slate-500">
                       <Search size={20} />
                   </div>
@@ -846,7 +846,7 @@ const App: React.FC = () => {
                         onChange={(e) => setFilterEquipment(e.target.value)}
                         className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg pl-9 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-100"
                       >
-                         <option value="all">All Devices</option>
+                         <option value="all">所有设备</option>
                          {EQUIPMENT_TYPES.map(eq => (
                              <option key={eq.id} value={eq.id}>{eq.name}</option>
                          ))}
@@ -863,8 +863,8 @@ const App: React.FC = () => {
                      <div className="bg-slate-100 p-4 rounded-full mb-3">
                          <Filter size={32} />
                      </div>
-                     <p className="text-sm font-medium">No orders found</p>
-                     <p className="text-xs">Try adjusting your filters</p>
+                     <p className="text-sm font-medium">未找到工单</p>
+                     <p className="text-xs">请尝试调整筛选条件</p>
                  </div>
              ) : (
                  filteredOrders.map(order => (
@@ -892,19 +892,19 @@ const App: React.FC = () => {
                              <UrgencyBadge level={order.urgency} />
                              {order.equipmentId && (
                                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-medium uppercase tracking-wide">
-                                     {EQUIPMENT_TYPES.find(e => e.id === order.equipmentId)?.name || 'Device'}
+                                     {EQUIPMENT_TYPES.find(e => e.id === order.equipmentId)?.name || '设备'}
                                  </span>
                              )}
                           </div>
                           <Button variant="ghost" className="!p-0 !h-auto text-indigo-600 text-xs font-bold hover:bg-transparent">
-                              Details <ChevronRight size={14} className="ml-0.5"/>
+                              详情 <ChevronRight size={14} className="ml-0.5"/>
                           </Button>
                       </div>
                     </Card>
                  ))
              )}
              <div className="text-center text-xs text-slate-300 py-4">
-                 Showing {filteredOrders.length} order{filteredOrders.length !== 1 && 's'}
+                 显示 {filteredOrders.length} 个工单
              </div>
           </div>
         </div>
@@ -926,9 +926,9 @@ const App: React.FC = () => {
                     <Bot size={24} />
                 </div>
                 <div>
-                    <h2 className="font-bold text-lg text-slate-800">Support Chat</h2>
+                    <h2 className="font-bold text-lg text-slate-800">在线客服</h2>
                     <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Online
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> 在线
                     </p>
                 </div>
              </div>
@@ -971,7 +971,7 @@ const App: React.FC = () => {
                 {ongoingOrders.length > 0 && (
                     <div className="border-b border-slate-100 bg-slate-50/50">
                         <div className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
-                            <span>Active Orders</span>
+                            <span>进行中的工单</span>
                             <span className="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px]">{ongoingOrders.length}</span>
                         </div>
                         <div className="flex overflow-x-auto gap-3 px-4 pb-3 no-scrollbar snap-x">
@@ -999,7 +999,7 @@ const App: React.FC = () => {
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder="Type a message..."
+                        placeholder="输入消息..."
                         className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     />
                     <button 
@@ -1022,16 +1022,16 @@ const App: React.FC = () => {
     return (
       <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
          <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="font-bold text-lg mb-4 text-slate-800">Edit Remarks</h3>
+            <h3 className="font-bold text-lg mb-4 text-slate-800">编辑备注</h3>
             <textarea 
               value={editRemarksValue}
               onChange={(e) => setEditRemarksValue(e.target.value)}
               className="w-full border border-slate-200 rounded-xl p-3 h-32 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
-              placeholder="Enter instructions for the engineer..."
+              placeholder="请输入给工程师的备注信息..."
             />
             <div className="flex gap-3 mt-4">
-               <Button variant="secondary" className="flex-1" onClick={() => setIsEditRemarksOpen(false)}>Cancel</Button>
-               <Button className="flex-1" onClick={handleUpdateRemarks}>Save</Button>
+               <Button variant="secondary" className="flex-1" onClick={() => setIsEditRemarksOpen(false)}>取消</Button>
+               <Button className="flex-1" onClick={handleUpdateRemarks}>保存</Button>
             </div>
          </div>
       </div>
@@ -1046,13 +1046,13 @@ const App: React.FC = () => {
        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
           <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom-20 duration-300">
              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-xl text-slate-800">Payment Details</h3>
+                <h3 className="font-bold text-xl text-slate-800">支付详情</h3>
                 <button onClick={() => setIsPaymentOpen(false)}><X size={20} className="text-slate-400"/></button>
              </div>
              
              <div className="text-center mb-8">
-                <p className="text-slate-500 text-sm mb-1">Total Amount</p>
-                <h2 className="text-4xl font-bold text-slate-800">${amount.toFixed(2)}</h2>
+                <p className="text-slate-500 text-sm mb-1">总金额</p>
+                <h2 className="text-4xl font-bold text-slate-800">¥{amount.toFixed(2)}</h2>
              </div>
 
              <div className="space-y-3 mb-8">
@@ -1061,7 +1061,7 @@ const App: React.FC = () => {
                       <CreditCard size={20}/>
                    </div>
                    <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-800">Credit Card</p>
+                      <p className="font-bold text-sm text-slate-800">信用卡</p>
                       <p className="text-xs text-slate-500">**** 4242</p>
                    </div>
                    <div className="w-5 h-5 rounded-full border-4 border-indigo-600"></div>
@@ -1071,14 +1071,14 @@ const App: React.FC = () => {
                       <Wallet size={20}/>
                    </div>
                    <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-800">Apple Pay</p>
+                      <p className="font-bold text-sm text-slate-800">微信支付</p>
                    </div>
                    <div className="w-5 h-5 rounded-full border border-slate-300"></div>
                 </div>
              </div>
 
              <Button fullWidth onClick={handlePayment} className="py-4 text-lg shadow-xl shadow-emerald-100 bg-emerald-600 hover:bg-emerald-700">
-                Pay ${amount.toFixed(2)}
+                支付 ¥{amount.toFixed(2)}
              </Button>
           </div>
        </div>
@@ -1087,7 +1087,7 @@ const App: React.FC = () => {
 
   const LocationPickerModal = () => {
     if (!isLocationPickerOpen) return null;
-    const nearbyPlaces = ['Skyline Plaza, NY', 'Central Park, NY', 'Empire State Building', 'Times Square'];
+    const nearbyPlaces = ['上海中心大厦, 上海', '人民广场, 上海', '陆家嘴金融中心', '南京西路'];
 
     return (
         <div className="fixed inset-0 z-[70] bg-slate-900/20 backdrop-blur-sm flex justify-center">
@@ -1097,7 +1097,7 @@ const App: React.FC = () => {
                      <button onClick={() => setIsLocationPickerOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
                      <div className="flex-1 bg-slate-100 rounded-xl flex items-center px-3 h-11 transition-all focus-within:ring-2 focus-within:ring-indigo-100">
                         <Search size={18} className="text-slate-400 mr-2"/>
-                        <input autoFocus placeholder="Search location" className="bg-transparent w-full outline-none text-sm text-slate-700 placeholder:text-slate-400" />
+                        <input autoFocus placeholder="搜索位置" className="bg-transparent w-full outline-none text-sm text-slate-700 placeholder:text-slate-400" />
                      </div>
                 </div>
 
@@ -1116,7 +1116,7 @@ const App: React.FC = () => {
                                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1.5 bg-black/20 rounded-[100%] blur-[2px] animate-pulse"></span>
                                 <MapPin size={48} className="relative -top-2 text-indigo-600 fill-indigo-100 drop-shadow-xl animate-bounce"/>
                              </div>
-                             <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm mt-2">Move map to adjust</span>
+                             <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm mt-2">移动地图以定位</span>
                         </div>
                     </div>
                 </div>
@@ -1124,7 +1124,7 @@ const App: React.FC = () => {
                 {/* Nearby List */}
                 <div className="bg-white rounded-t-3xl -mt-6 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] relative z-20">
                     <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
-                    <h3 className="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">Nearby Locations</h3>
+                    <h3 className="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">附近位置</h3>
                     <div className="space-y-2">
                         {nearbyPlaces.map(place => (
                             <div key={place} onClick={() => handleLocationSelect(place)} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${place === currentLocation ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'}`}>
@@ -1133,7 +1133,7 @@ const App: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className={`font-semibold text-sm ${place === currentLocation ? 'text-indigo-700' : 'text-slate-700'}`}>{place}</p>
-                                    <p className="text-xs text-slate-400">100m • Commercial</p>
+                                    <p className="text-xs text-slate-400">100米 • 商业区</p>
                                 </div>
                                 {place === currentLocation && <CheckCircle size={18} className="text-indigo-600 ml-auto"/>}
                             </div>
@@ -1153,7 +1153,7 @@ const App: React.FC = () => {
         <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
           {/* Header */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-lg">Smart Identify</h3>
+            <h3 className="font-bold text-lg">智能识别</h3>
             <button onClick={() => { setIsCameraOpen(false); setSelectedImage(null); }} className="p-2 hover:bg-slate-100 rounded-full">
               <X size={20} className="text-slate-500" />
             </button>
@@ -1167,7 +1167,7 @@ const App: React.FC = () => {
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white backdrop-blur-sm">
                     <Loader2 size={40} className="animate-spin mb-3 text-emerald-400" />
-                    <p className="font-medium tracking-wide animate-pulse">Analyzing Image...</p>
+                    <p className="font-medium tracking-wide animate-pulse">正在分析图片...</p>
                   </div>
                 )}
               </div>
@@ -1181,7 +1181,7 @@ const App: React.FC = () => {
                       <CheckCircle size={20} />
                    </div>
                    <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Detected Issue</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">检测到的问题</p>
                       <h4 className="font-bold text-xl text-slate-800">{analysisResult.title}</h4>
                    </div>
                 </div>
@@ -1192,11 +1192,11 @@ const App: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <p className="text-xs text-slate-400 mb-1">Category</p>
+                    <p className="text-xs text-slate-400 mb-1">类别</p>
                     <p className="font-semibold text-slate-700">{analysisResult.category}</p>
                   </div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                     <p className="text-xs text-slate-400 mb-1">Urgency</p>
+                     <p className="text-xs text-slate-400 mb-1">紧急程度</p>
                      <UrgencyBadge level={analysisResult.urgency} />
                   </div>
                 </div>
@@ -1207,9 +1207,9 @@ const App: React.FC = () => {
           {/* Footer Actions */}
           <div className="p-4 border-t border-slate-100 bg-slate-50">
              {!isAnalyzing && analysisResult ? (
-                <Button fullWidth onClick={() => handleCreateOrder(true)}>Create Ticket</Button>
+                <Button fullWidth onClick={() => handleCreateOrder(true)}>创建工单</Button>
              ) : (
-               <Button fullWidth disabled variant="secondary">Waiting for Analysis...</Button>
+               <Button fullWidth disabled variant="secondary">等待分析...</Button>
              )}
           </div>
         </div>
@@ -1287,8 +1287,8 @@ const App: React.FC = () => {
            {/* Header */}
            <div className="p-5 flex justify-between items-center border-b border-slate-50">
              <div>
-                <h3 className="font-bold text-xl text-slate-800">Voice Report</h3>
-                <p className="text-xs text-slate-400">Describe the issue clearly</p>
+                <h3 className="font-bold text-xl text-slate-800">语音报修</h3>
+                <p className="text-xs text-slate-400">请清晰描述问题</p>
              </div>
              <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400"/></button>
            </div>
@@ -1314,21 +1314,21 @@ const App: React.FC = () => {
                   </div>
 
                   <h4 className="font-bold text-slate-800 text-lg mb-2">
-                    {isRecording ? "Listening..." : "Tap to Record"}
+                    {isRecording ? "正在聆听..." : "点击开始录音"}
                   </h4>
                   <p className="text-sm text-slate-500 text-center max-w-[240px] mb-8">
-                    {isRecording ? "Describe the problem clearly. Tap again to finish." : "Mention the location and the type of fault."}
+                    {isRecording ? "请清晰描述问题。再次点击结束录音。" : "请描述故障的位置和类型。"}
                   </p>
 
                   {/* Examples */}
                   <div className="w-full space-y-3">
                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-indigo-500 shadow-sm"><Sparkles size={14}/></div>
-                        <p className="text-xs text-slate-600">"The AC in the lobby is leaking water"</p>
+                        <p className="text-xs text-slate-600">"大堂的空调正在漏水"</p>
                      </div>
                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-sm"><Sparkles size={14}/></div>
-                        <p className="text-xs text-slate-600">"Elevator B buttons are not working"</p>
+                        <p className="text-xs text-slate-600">"B区电梯按钮失灵"</p>
                      </div>
                   </div>
                 </>
@@ -1337,8 +1337,8 @@ const App: React.FC = () => {
               {isAnalyzing && (
                  <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
                     <Loader2 size={48} className="text-indigo-600 animate-spin mb-4" />
-                    <p className="font-bold text-slate-800">Analyzing Audio...</p>
-                    <p className="text-xs text-slate-400 mt-1">Identifying issue details</p>
+                    <p className="font-bold text-slate-800">正在分析音频...</p>
+                    <p className="text-xs text-slate-400 mt-1">正在识别问题详情</p>
                  </div>
               )}
 
@@ -1348,7 +1348,7 @@ const App: React.FC = () => {
                     <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6 flex items-start gap-3">
                        <CheckCircle size={24} className="text-emerald-600 mt-0.5 shrink-0"/>
                        <div>
-                          <p className="text-xs font-bold text-emerald-600 uppercase mb-0.5">Identified Issue</p>
+                          <p className="text-xs font-bold text-emerald-600 uppercase mb-0.5">识别到的问题</p>
                           <h4 className="font-bold text-slate-800">{analysisResult.title}</h4>
                           <p className="text-sm text-slate-600 mt-1">{analysisResult.description}</p>
                        </div>
@@ -1356,18 +1356,18 @@ const App: React.FC = () => {
                     
                     <div className="grid grid-cols-2 gap-3 mb-6">
                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                           <p className="text-[10px] text-slate-400 font-bold uppercase">Category</p>
+                           <p className="text-[10px] text-slate-400 font-bold uppercase">类别</p>
                            <p className="font-semibold text-slate-700">{analysisResult.category}</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                           <p className="text-[10px] text-slate-400 font-bold uppercase">Urgency</p>
+                           <p className="text-[10px] text-slate-400 font-bold uppercase">紧急程度</p>
                            <UrgencyBadge level={analysisResult.urgency} />
                         </div>
                     </div>
 
                     <div className="flex gap-3">
-                       <Button variant="secondary" onClick={() => setAnalysisResult(null)} className="flex-1">Retry</Button>
-                       <Button className="flex-[2]" onClick={() => handleCreateOrder(true)}>Create Ticket</Button>
+                       <Button variant="secondary" onClick={() => setAnalysisResult(null)} className="flex-1">重试</Button>
+                       <Button className="flex-[2]" onClick={() => handleCreateOrder(true)}>创建工单</Button>
                     </div>
                  </div>
               )}
@@ -1392,8 +1392,8 @@ const App: React.FC = () => {
     const currentEquipment = EQUIPMENT_TYPES.find(e => e.id === selectedEq);
 
     const handleManualSubmit = () => {
-       const title = currentEquipment ? currentEquipment.name : "Maintenance Request";
-       const desc = selectedFault ? selectedFault : "Reported Issue";
+       const title = currentEquipment ? currentEquipment.name : "维修请求";
+       const desc = selectedFault ? selectedFault : "报告的问题";
        // Ensure remarks are passed as remarks
        handleCreateOrder(false, { title, description: desc, image: manualPhoto, equipmentId: selectedEq });
     };
@@ -1414,7 +1414,7 @@ const App: React.FC = () => {
           {/* Header */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
             <div>
-              <h3 className="font-bold text-lg text-slate-800">New Work Order</h3>
+              <h3 className="font-bold text-lg text-slate-800">新建工单</h3>
               <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={10}/> {currentLocation}</p>
             </div>
             <button onClick={() => setIsManualOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -1429,9 +1429,9 @@ const App: React.FC = () => {
              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                <div className="flex items-center gap-2 mb-3">
                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">1</div>
-                 <h4 className="font-semibold text-slate-800">Select Equipment</h4>
+                 <h4 className="font-semibold text-slate-800">选择设备</h4>
                </div>
-               <p className="text-xs text-slate-500 mb-4 px-1 flex items-center gap-1"><Info size={12}/> Choose the faulty device type</p>
+               <p className="text-xs text-slate-500 mb-4 px-1 flex items-center gap-1"><Info size={12}/> 选择故障的设备类型</p>
                
                <div className="grid grid-cols-3 gap-3">
                   {EQUIPMENT_TYPES.map(eq => {
@@ -1455,12 +1455,12 @@ const App: React.FC = () => {
              <div className={`bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-opacity duration-300 ${!selectedEq ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">2</div>
-                  <h4 className="font-semibold text-slate-800">Issue Description</h4>
+                  <h4 className="font-semibold text-slate-800">问题描述</h4>
                 </div>
                 
                 {selectedEq && currentEquipment ? (
                   <div className="mb-4">
-                     <p className="text-xs text-slate-500 mb-2 px-1">Common issues for {currentEquipment.name}:</p>
+                     <p className="text-xs text-slate-500 mb-2 px-1">{currentEquipment.name} 常见问题：</p>
                      <div className="flex flex-wrap gap-2">
                         {currentEquipment.issues.map(issue => (
                           <button
@@ -1474,15 +1474,15 @@ const App: React.FC = () => {
                      </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 italic mb-4 px-1">Please select equipment first...</p>
+                  <p className="text-xs text-slate-400 italic mb-4 px-1">请先选择设备...</p>
                 )}
 
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1 uppercase tracking-wider">Remarks / Details</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1 uppercase tracking-wider">备注 / 详情</label>
                 <textarea 
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm min-h-[80px]" 
-                  placeholder="e.g. Gate code is 1234..."
+                  placeholder="例如：门禁密码是 1234..."
                 />
              </div>
 
@@ -1490,7 +1490,7 @@ const App: React.FC = () => {
              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                <div className="flex items-center gap-2 mb-3">
                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">3</div>
-                 <h4 className="font-semibold text-slate-800">Photo Evidence</h4>
+                 <h4 className="font-semibold text-slate-800">照片凭证</h4>
                </div>
                
                {!manualPhoto ? (
@@ -1499,7 +1499,7 @@ const App: React.FC = () => {
                     className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-100 hover:border-indigo-400 hover:text-indigo-500 cursor-pointer transition-all"
                  >
                     <ImagePlus size={32} strokeWidth={1.5} className="mb-2"/>
-                    <span className="text-xs font-medium">Tap to upload photo</span>
+                    <span className="text-xs font-medium">点击上传照片</span>
                  </div>
                ) : (
                  <div className="relative rounded-xl overflow-hidden shadow-sm border border-slate-200 group">
@@ -1520,7 +1520,7 @@ const App: React.FC = () => {
           {/* Footer */}
           <div className="p-4 border-t border-slate-100 bg-white pb-6 sm:pb-4">
              <Button fullWidth onClick={handleManualSubmit} disabled={!selectedEq}>
-               Submit Work Order
+               提交工单
              </Button>
           </div>
 
@@ -1539,7 +1539,7 @@ const App: React.FC = () => {
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'support' && renderSupport()}
       {activeTab === 'settings' && (
-        <div className="flex items-center justify-center h-full text-slate-400">Settings Placeholder</div>
+        <div className="flex items-center justify-center h-full text-slate-400">设置页面（待开发）</div>
       )}
       
       <SmartRepairModal />
