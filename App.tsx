@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, Headphones, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp, Bot, Send } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, Headphones, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp, Bot, Send, Barcode, Tag } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
 import { analyzeRepairImage, analyzeRepairAudio } from './services/geminiService';
 
@@ -69,7 +69,9 @@ const MOCK_ORDERS: WorkOrder[] = [
     equipmentId: 'pos',
     timeline: [{ title: '工单已创建', timestamp: subMinutes(NOW, 10).toISOString(), isActive: true }],
     description: "屏幕冻结，触摸无反应。",
-    remarks: "请从侧门进入。"
+    remarks: "请从侧门进入。",
+    serialNumber: "POS-2023-X99",
+    cost: 100
   },
   {
     id: 'WO-9920',
@@ -85,7 +87,8 @@ const MOCK_ORDERS: WorkOrder[] = [
     ],
     engineer: MOCK_ENGINEER,
     description: "发出巨大的研磨声，且不制冰。",
-    remarks: "门禁密码是 1234"
+    remarks: "门禁密码是 1234",
+    cost: 150
   },
   {
     id: 'WO-9918',
@@ -101,7 +104,8 @@ const MOCK_ORDERS: WorkOrder[] = [
       { title: '诊断完成', timestamp: subDays(NOW, 3).toISOString(), isActive: true }
     ],
     engineer: MOCK_ENGINEER,
-    description: "定期维护检查。"
+    description: "定期维护检查。",
+    cost: 200
   },
   {
     id: 'WO-9850',
@@ -134,11 +138,66 @@ const MOCK_ORDERS: WorkOrder[] = [
 ];
 
 const EQUIPMENT_TYPES = [
-  { id: 'pos', name: 'POS终端', icon: Calculator, issues: ['无法开机', '网络离线', '打印机卡纸', '触摸屏失灵'] },
-  { id: 'hvac', name: '空调暖通', icon: Fan, issues: ['不制冷/热', '漏水', '噪音大', '异味'] },
-  { id: 'light', name: '照明灯具', icon: Lightbulb, issues: ['灯泡烧坏', '闪烁', '开关损坏', '灯具松动'] },
-  { id: 'plumbing', name: '管道水路', icon: Droplets, issues: ['水龙头漏水', '下水道堵塞', '无热水', '水压低'] },
-  { id: 'other', name: '其他杂项', icon: HelpCircle, issues: ['一般损坏', '需要清洁', '安全隐患', '家具破损'] }
+  { 
+    id: 'pos', 
+    name: 'POS终端', 
+    icon: Calculator, 
+    basePrice: 50,
+    issues: [
+      { name: '无法开机', price: 100 },
+      { name: '网络离线', price: 60 },
+      { name: '打印机卡纸', price: 50 },
+      { name: '触摸屏失灵', price: 120 }
+    ]
+  },
+  { 
+    id: 'hvac', 
+    name: '空调暖通', 
+    icon: Fan, 
+    basePrice: 80,
+    issues: [
+      { name: '不制冷/热', price: 200 },
+      { name: '漏水', price: 150 },
+      { name: '噪音大', price: 100 },
+      { name: '异味', price: 120 }
+    ]
+  },
+  { 
+    id: 'light', 
+    name: '照明灯具', 
+    icon: Lightbulb, 
+    basePrice: 30,
+    issues: [
+      { name: '灯泡烧坏', price: 40 },
+      { name: '闪烁', price: 50 },
+      { name: '开关损坏', price: 60 },
+      { name: '灯具松动', price: 50 }
+    ] 
+  },
+  { 
+    id: 'plumbing', 
+    name: '管道水路', 
+    icon: Droplets, 
+    basePrice: 60,
+    issues: [
+      { name: '水龙头漏水', price: 80 },
+      { name: '下水道堵塞', price: 120 },
+      { name: '无热水', price: 100 },
+      { name: '水压低', price: 80 }
+    ] 
+  },
+  { 
+    id: 'other', 
+    name: '其他杂项', 
+    icon: HelpCircle, 
+    basePrice: 50,
+    issues: [
+      { name: '一般损坏', price: 50 },
+      { name: '需要清洁', price: 100 },
+      { name: '安全隐患', price: 80 },
+      { name: '家具破损', price: 60 }
+    ] 
+  }
 ];
 
 const STATUS_FILTERS = ['全部', ...Object.values(OrderStatus)];
@@ -281,6 +340,8 @@ const App: React.FC = () => {
     let urgency = UrgencyLevel.MEDIUM;
     let img = undefined;
     let eqId = manualData?.equipmentId;
+    let serial = manualData?.serialNumber;
+    let cost = manualData?.cost;
 
     if (isSmart && analysisResult) {
       title = analysisResult.title;
@@ -289,6 +350,7 @@ const App: React.FC = () => {
       img = selectedImage || undefined;
       // Simple heuristic for smart mapping, in real app this comes from AI
       eqId = 'other'; 
+      cost = 50; // default smart cost
     } else if (manualData) {
       title = manualData.title;
       description = manualData.description;
@@ -306,7 +368,9 @@ const App: React.FC = () => {
       dateCreated: new Date().toISOString(),
       equipmentId: eqId,
       imageUrl: img,
-      timeline: [{ title: '工单已创建', timestamp: new Date().toLocaleTimeString(), isActive: true }]
+      timeline: [{ title: '工单已创建', timestamp: new Date().toLocaleTimeString(), isActive: true }],
+      serialNumber: serial,
+      cost: cost
     };
 
     setOrders([newOrder, ...orders]);
@@ -697,7 +761,18 @@ const App: React.FC = () => {
                           {EQUIPMENT_TYPES.find(e => e.id === selectedOrder.equipmentId)?.name || '设备'}
                        </span>
                     )}
+                    {selectedOrder.cost && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md font-bold">
+                         ¥{selectedOrder.cost}
+                      </span>
+                    )}
                  </div>
+                 {selectedOrder.serialNumber && (
+                    <div className="flex items-center gap-1 mt-2 text-xs text-slate-400 font-mono bg-slate-50 inline-block px-1.5 rounded">
+                       <Barcode size={10} />
+                       SN: {selectedOrder.serialNumber}
+                    </div>
+                 )}
                </div>
              </div>
 
@@ -911,473 +986,6 @@ const App: React.FC = () => {
     );
   };
 
-  const renderSupport = () => {
-    const ongoingOrders = orders.filter(o => 
-        o.status !== OrderStatus.COMPLETED && 
-        o.status !== OrderStatus.CANCELLED &&
-        o.status !== OrderStatus.REFUNDING
-    );
-
-    return (
-        <div className="flex flex-col h-full bg-slate-50 relative">
-             {/* Header */}
-             <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-                    <Bot size={24} />
-                </div>
-                <div>
-                    <h2 className="font-bold text-lg text-slate-800">在线客服</h2>
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> 在线
-                    </p>
-                </div>
-             </div>
-
-             {/* Messages */}
-             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4">
-                {chatMessages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] space-y-2`}>
-                            {msg.text && (
-                                <div className={`p-3 rounded-2xl text-sm ${
-                                    msg.sender === 'user' 
-                                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-200' 
-                                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm'
-                                }`}>
-                                    {msg.text}
-                                </div>
-                            )}
-                            {msg.order && (
-                                <div className={`p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-left overflow-hidden ${msg.sender === 'user' ? 'ml-auto' : ''}`}>
-                                     <div className="flex items-center gap-2 mb-2 border-b border-slate-50 pb-2">
-                                        <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1 rounded">{msg.order.id}</span>
-                                        <StatusBadge status={msg.order.status} />
-                                     </div>
-                                     <p className="font-bold text-slate-800 text-sm">{msg.order.title}</p>
-                                     <p className="text-xs text-slate-500 mt-0.5">{msg.order.location}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-                <div ref={chatEndRef} />
-             </div>
-
-             {/* Bottom Area - Order List & Input */}
-             {/* We need to be careful with z-index and spacing because of Layout's floating nav */}
-             <div className="bg-white border-t border-slate-100 z-20 pb-0 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-                
-                {/* Ongoing Orders List */}
-                {ongoingOrders.length > 0 && (
-                    <div className="border-b border-slate-100 bg-slate-50/50">
-                        <div className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
-                            <span>进行中的工单</span>
-                            <span className="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px]">{ongoingOrders.length}</span>
-                        </div>
-                        <div className="flex overflow-x-auto gap-3 px-4 pb-3 no-scrollbar snap-x">
-                            {ongoingOrders.map(order => (
-                                <button 
-                                    key={order.id} 
-                                    onClick={() => handleSendOrder(order)}
-                                    className="snap-start shrink-0 w-48 bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col items-start gap-1 hover:border-indigo-300 hover:shadow-md transition-all text-left group"
-                                >
-                                    <div className="flex justify-between w-full mb-1">
-                                        <span className="text-[10px] font-mono text-slate-400">{order.id}</span>
-                                        <div className={`w-2 h-2 rounded-full ${order.status === OrderStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
-                                    </div>
-                                    <p className="font-bold text-slate-700 text-xs truncate w-full group-hover:text-indigo-700">{order.title}</p>
-                                    <p className="text-[10px] text-slate-500 truncate w-full">{order.location}</p>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Input Field */}
-                <div className="p-3 flex gap-2 items-center">
-                    <input 
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder="输入消息..."
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                    />
-                    <button 
-                        onClick={handleSendMessage}
-                        disabled={!chatInput.trim()}
-                        className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:shadow-none transition-all"
-                    >
-                        <Send size={18} className="ml-0.5" />
-                    </button>
-                </div>
-             </div>
-        </div>
-    )
-  }
-
-  // --- Modals ---
-
-  const EditRemarksModal = () => {
-    if (!isEditRemarksOpen) return null;
-    return (
-      <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-         <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="font-bold text-lg mb-4 text-slate-800">编辑备注</h3>
-            <textarea 
-              value={editRemarksValue}
-              onChange={(e) => setEditRemarksValue(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl p-3 h-32 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
-              placeholder="请输入给工程师的备注信息..."
-            />
-            <div className="flex gap-3 mt-4">
-               <Button variant="secondary" className="flex-1" onClick={() => setIsEditRemarksOpen(false)}>取消</Button>
-               <Button className="flex-1" onClick={handleUpdateRemarks}>保存</Button>
-            </div>
-         </div>
-      </div>
-    )
-  }
-
-  const PaymentModal = () => {
-    if (!isPaymentOpen || !selectedOrder) return null;
-    const amount = selectedOrder.cost || 100.00;
-    
-    return (
-       <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-          <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom-20 duration-300">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-xl text-slate-800">支付详情</h3>
-                <button onClick={() => setIsPaymentOpen(false)}><X size={20} className="text-slate-400"/></button>
-             </div>
-             
-             <div className="text-center mb-8">
-                <p className="text-slate-500 text-sm mb-1">总金额</p>
-                <h2 className="text-4xl font-bold text-slate-800">¥{amount.toFixed(2)}</h2>
-             </div>
-
-             <div className="space-y-3 mb-8">
-                <div className="flex items-center gap-3 p-4 border border-indigo-100 bg-indigo-50 rounded-xl cursor-pointer">
-                   <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-indigo-600 shadow-sm">
-                      <CreditCard size={20}/>
-                   </div>
-                   <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-800">信用卡</p>
-                      <p className="text-xs text-slate-500">**** 4242</p>
-                   </div>
-                   <div className="w-5 h-5 rounded-full border-4 border-indigo-600"></div>
-                </div>
-                <div className="flex items-center gap-3 p-4 border border-slate-100 rounded-xl cursor-pointer opacity-60">
-                   <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-                      <Wallet size={20}/>
-                   </div>
-                   <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-800">微信支付</p>
-                   </div>
-                   <div className="w-5 h-5 rounded-full border border-slate-300"></div>
-                </div>
-             </div>
-
-             <Button fullWidth onClick={handlePayment} className="py-4 text-lg shadow-xl shadow-emerald-100 bg-emerald-600 hover:bg-emerald-700">
-                支付 ¥{amount.toFixed(2)}
-             </Button>
-          </div>
-       </div>
-    );
-  }
-
-  const LocationPickerModal = () => {
-    if (!isLocationPickerOpen) return null;
-    const nearbyPlaces = ['上海中心大厦, 上海', '人民广场, 上海', '陆家嘴金融中心', '南京西路'];
-
-    return (
-        <div className="fixed inset-0 z-[70] bg-slate-900/20 backdrop-blur-sm flex justify-center">
-            <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 duration-200">
-                {/* Search Header */}
-                <div className="p-4 pt-6 flex gap-3 items-center border-b border-slate-100 z-10 bg-white">
-                     <button onClick={() => setIsLocationPickerOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
-                     <div className="flex-1 bg-slate-100 rounded-xl flex items-center px-3 h-11 transition-all focus-within:ring-2 focus-within:ring-indigo-100">
-                        <Search size={18} className="text-slate-400 mr-2"/>
-                        <input autoFocus placeholder="搜索位置" className="bg-transparent w-full outline-none text-sm text-slate-700 placeholder:text-slate-400" />
-                     </div>
-                </div>
-
-                {/* Map Placeholder */}
-                <div className="flex-1 bg-slate-100 relative overflow-hidden group">
-                    {/* Simulated Map Background - Dot Pattern */}
-                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#94a3b8_1.5px,transparent_1.5px)] [background-size:20px_20px]"></div>
-                    
-                    {/* Simulated Map Roads/Blocks - Purely Decorative */}
-                    <div className="absolute top-1/4 left-0 right-0 h-4 bg-white/40 rotate-12 transform scale-125"></div>
-                    <div className="absolute top-0 bottom-0 left-1/3 w-4 bg-white/40 -rotate-6 transform scale-125"></div>
-
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex flex-col items-center">
-                             <div className="relative">
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1.5 bg-black/20 rounded-[100%] blur-[2px] animate-pulse"></span>
-                                <MapPin size={48} className="relative -top-2 text-indigo-600 fill-indigo-100 drop-shadow-xl animate-bounce"/>
-                             </div>
-                             <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm mt-2">移动地图以定位</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Nearby List */}
-                <div className="bg-white rounded-t-3xl -mt-6 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] relative z-20">
-                    <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
-                    <h3 className="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">附近位置</h3>
-                    <div className="space-y-2">
-                        {nearbyPlaces.map(place => (
-                            <div key={place} onClick={() => handleLocationSelect(place)} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${place === currentLocation ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'}`}>
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${place === currentLocation ? 'bg-white text-indigo-600 shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
-                                    <Navigation size={18} className={place === currentLocation ? "fill-current" : ""}/>
-                                </div>
-                                <div>
-                                    <p className={`font-semibold text-sm ${place === currentLocation ? 'text-indigo-700' : 'text-slate-700'}`}>{place}</p>
-                                    <p className="text-xs text-slate-400">100米 • 商业区</p>
-                                </div>
-                                {place === currentLocation && <CheckCircle size={18} className="text-indigo-600 ml-auto"/>}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-  }
-
-  const SmartRepairModal = () => {
-    if (!isCameraOpen) return null;
-
-    return (
-      <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-        <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-lg">智能识别</h3>
-            <button onClick={() => { setIsCameraOpen(false); setSelectedImage(null); }} className="p-2 hover:bg-slate-100 rounded-full">
-              <X size={20} className="text-slate-500" />
-            </button>
-          </div>
-
-          {/* Image Preview */}
-          <div className="p-4 flex-1 overflow-y-auto no-scrollbar">
-            {selectedImage && (
-              <div className="relative rounded-2xl overflow-hidden shadow-lg mb-6 aspect-square bg-slate-100">
-                <img src={selectedImage} alt="Analysis" className="w-full h-full object-cover" />
-                {isAnalyzing && (
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                    <Loader2 size={40} className="animate-spin mb-3 text-emerald-400" />
-                    <p className="font-medium tracking-wide animate-pulse">正在分析图片...</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Analysis Result */}
-            {!isAnalyzing && analysisResult && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-3 mb-2">
-                   <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
-                      <CheckCircle size={20} />
-                   </div>
-                   <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">检测到的问题</p>
-                      <h4 className="font-bold text-xl text-slate-800">{analysisResult.title}</h4>
-                   </div>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="text-slate-600 text-sm leading-relaxed">{analysisResult.description}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <p className="text-xs text-slate-400 mb-1">类别</p>
-                    <p className="font-semibold text-slate-700">{analysisResult.category}</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                     <p className="text-xs text-slate-400 mb-1">紧急程度</p>
-                     <UrgencyBadge level={analysisResult.urgency} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-4 border-t border-slate-100 bg-slate-50">
-             {!isAnalyzing && analysisResult ? (
-                <Button fullWidth onClick={() => handleCreateOrder(true)}>创建工单</Button>
-             ) : (
-               <Button fullWidth disabled variant="secondary">等待分析...</Button>
-             )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const VoiceRepairModal = () => {
-    const [isRecording, setIsRecording] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
-
-    if (!isVoiceOpen) return null;
-
-    const startRecording = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-        audioChunksRef.current = [];
-
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          audioChunksRef.current.push(event.data);
-        };
-
-        mediaRecorderRef.current.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = async () => {
-             const base64Audio = reader.result as string;
-             setIsAnalyzing(true);
-             const result = await analyzeRepairAudio(base64Audio);
-             setAnalysisResult(result);
-             setIsAnalyzing(false);
-          };
-        };
-
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-      } catch (err) {
-        console.error("Error accessing microphone:", err);
-        alert("Microphone access denied or not available.");
-      }
-    };
-
-    const stopRecording = () => {
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
-        // Stop all tracks to release mic
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      }
-    };
-
-    const toggleRecording = () => {
-      if (isRecording) stopRecording();
-      else startRecording();
-    }
-
-    // Reset when closing
-    const handleClose = () => {
-      setIsVoiceOpen(false);
-      setAnalysisResult(null);
-      setIsAnalyzing(false);
-      setIsRecording(false);
-      if(mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-          mediaRecorderRef.current.stop();
-      }
-    }
-
-    return (
-       <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
-         <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10">
-           
-           {/* Header */}
-           <div className="p-5 flex justify-between items-center border-b border-slate-50">
-             <div>
-                <h3 className="font-bold text-xl text-slate-800">语音报修</h3>
-                <p className="text-xs text-slate-400">请清晰描述问题</p>
-             </div>
-             <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400"/></button>
-           </div>
-
-           {/* Content */}
-           <div className="p-6 flex flex-col items-center justify-center flex-1 min-h-[300px]">
-              
-              {!isAnalyzing && !analysisResult && (
-                <>
-                  <div className="relative mb-8">
-                     {isRecording && (
-                       <>
-                         <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20"></div>
-                         <div className="absolute inset-[-12px] bg-red-500 rounded-full animate-pulse opacity-10"></div>
-                       </>
-                     )}
-                     <button 
-                       onClick={toggleRecording}
-                       className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isRecording ? 'bg-red-500 text-white scale-110' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'}`}
-                     >
-                        {isRecording ? <Square size={32} fill="currentColor"/> : <Mic size={40} />}
-                     </button>
-                  </div>
-
-                  <h4 className="font-bold text-slate-800 text-lg mb-2">
-                    {isRecording ? "正在聆听..." : "点击开始录音"}
-                  </h4>
-                  <p className="text-sm text-slate-500 text-center max-w-[240px] mb-8">
-                    {isRecording ? "请清晰描述问题。再次点击结束录音。" : "请描述故障的位置和类型。"}
-                  </p>
-
-                  {/* Examples */}
-                  <div className="w-full space-y-3">
-                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
-                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-indigo-500 shadow-sm"><Sparkles size={14}/></div>
-                        <p className="text-xs text-slate-600">"大堂的空调正在漏水"</p>
-                     </div>
-                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3 opacity-80">
-                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-sm"><Sparkles size={14}/></div>
-                        <p className="text-xs text-slate-600">"B区电梯按钮失灵"</p>
-                     </div>
-                  </div>
-                </>
-              )}
-
-              {isAnalyzing && (
-                 <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-                    <Loader2 size={48} className="text-indigo-600 animate-spin mb-4" />
-                    <p className="font-bold text-slate-800">正在分析音频...</p>
-                    <p className="text-xs text-slate-400 mt-1">正在识别问题详情</p>
-                 </div>
-              )}
-
-              {/* Result View */}
-              {!isAnalyzing && analysisResult && (
-                 <div className="w-full animate-in slide-in-from-bottom-5">
-                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6 flex items-start gap-3">
-                       <CheckCircle size={24} className="text-emerald-600 mt-0.5 shrink-0"/>
-                       <div>
-                          <p className="text-xs font-bold text-emerald-600 uppercase mb-0.5">识别到的问题</p>
-                          <h4 className="font-bold text-slate-800">{analysisResult.title}</h4>
-                          <p className="text-sm text-slate-600 mt-1">{analysisResult.description}</p>
-                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                           <p className="text-[10px] text-slate-400 font-bold uppercase">类别</p>
-                           <p className="font-semibold text-slate-700">{analysisResult.category}</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                           <p className="text-[10px] text-slate-400 font-bold uppercase">紧急程度</p>
-                           <UrgencyBadge level={analysisResult.urgency} />
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                       <Button variant="secondary" onClick={() => setAnalysisResult(null)} className="flex-1">重试</Button>
-                       <Button className="flex-[2]" onClick={() => handleCreateOrder(true)}>创建工单</Button>
-                    </div>
-                 </div>
-              )}
-
-           </div>
-         </div>
-       </div>
-    );
-  }
-
   // --- REVAMPED MANUAL FORM ---
   const ManualFormModal = () => {
     // Form Local State
@@ -1385,17 +993,36 @@ const App: React.FC = () => {
     const [selectedFault, setSelectedFault] = useState<string | null>(null);
     const [manualPhoto, setManualPhoto] = useState<string | null>(null);
     const [remarks, setRemarks] = useState('');
+    const [serialNumber, setSerialNumber] = useState('');
     const manualFileRef = useRef<HTMLInputElement>(null);
 
     if (!isManualOpen) return null;
 
     const currentEquipment = EQUIPMENT_TYPES.find(e => e.id === selectedEq);
+    
+    // Dynamic Pricing Calculation
+    const currentPrice = useMemo(() => {
+        if (!currentEquipment) return 0;
+        if (selectedFault) {
+            const issue = currentEquipment.issues.find(i => i.name === selectedFault);
+            // If the selected issue has a specific price, use it, otherwise use base price
+            return issue ? issue.price : currentEquipment.basePrice;
+        }
+        return currentEquipment.basePrice;
+    }, [currentEquipment, selectedFault]);
 
     const handleManualSubmit = () => {
        const title = currentEquipment ? currentEquipment.name : "维修请求";
        const desc = selectedFault ? selectedFault : "报告的问题";
        // Ensure remarks are passed as remarks
-       handleCreateOrder(false, { title, description: desc, image: manualPhoto, equipmentId: selectedEq });
+       handleCreateOrder(false, { 
+           title, 
+           description: desc, 
+           image: manualPhoto, 
+           equipmentId: selectedEq,
+           serialNumber: serialNumber,
+           cost: currentPrice 
+       });
     };
 
     const handleManualPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1457,6 +1084,22 @@ const App: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">2</div>
                   <h4 className="font-semibold text-slate-800">问题描述</h4>
                 </div>
+
+                {/* Serial Number Input */}
+                <div className="mb-4">
+                   <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1 uppercase tracking-wider flex items-center gap-1">
+                      设备序列号 (S/N)
+                   </label>
+                   <div className="relative">
+                      <Barcode size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                      <input 
+                         value={serialNumber}
+                         onChange={(e) => setSerialNumber(e.target.value)}
+                         className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-300"
+                         placeholder="输入或扫描序列号..."
+                      />
+                   </div>
+                </div>
                 
                 {selectedEq && currentEquipment ? (
                   <div className="mb-4">
@@ -1464,11 +1107,11 @@ const App: React.FC = () => {
                      <div className="flex flex-wrap gap-2">
                         {currentEquipment.issues.map(issue => (
                           <button
-                            key={issue}
-                            onClick={() => setSelectedFault(issue === selectedFault ? null : issue)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${selectedFault === issue ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
+                            key={issue.name}
+                            onClick={() => setSelectedFault(issue.name === selectedFault ? null : issue.name)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${selectedFault === issue.name ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
                           >
-                            {issue}
+                            {issue.name}
                           </button>
                         ))}
                      </div>
@@ -1518,7 +1161,18 @@ const App: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-100 bg-white pb-6 sm:pb-4">
+          <div className="p-4 border-t border-slate-100 bg-white pb-6 sm:pb-4 flex flex-col gap-3">
+             {/* Price Display */}
+             {selectedEq && (
+               <div className="flex justify-between items-center px-2">
+                 <span className="text-sm font-medium text-slate-500">预计基础费用</span>
+                 <span className="text-xl font-bold text-slate-800 flex items-center gap-1">
+                    <Tag size={16} className="text-emerald-500"/>
+                    ¥{currentPrice}
+                 </span>
+               </div>
+             )}
+             
              <Button fullWidth onClick={handleManualSubmit} disabled={!selectedEq}>
                提交工单
              </Button>
@@ -1528,6 +1182,364 @@ const App: React.FC = () => {
        </div>
     );
   }
+
+  // --- NEW MISSING COMPONENTS ---
+
+  const renderSupport = () => (
+    <div className="flex flex-col h-full bg-slate-50 relative">
+       {/* Header */}
+       <div className="p-4 bg-white border-b border-slate-100 flex items-center gap-3 shadow-sm sticky top-0 z-10">
+          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+             <Bot size={24} />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-800">智能客服</h2>
+            <p className="text-xs text-green-500 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> 在线</p>
+          </div>
+       </div>
+
+       {/* Chat Area */}
+       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+          {chatMessages.map((msg) => (
+             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-2xl p-3.5 text-sm leading-relaxed shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'}`}>
+                   {msg.order && (
+                      <div className="mb-2 p-2 bg-white/10 rounded-lg border border-white/10">
+                          <p className="font-bold text-xs opacity-80">工单: {msg.order.id}</p>
+                          <p className="font-bold">{msg.order.title}</p>
+                      </div>
+                   )}
+                   {msg.text}
+                </div>
+             </div>
+          ))}
+          <div ref={chatEndRef} />
+       </div>
+
+       {/* Input Area */}
+       <div className="p-3 bg-white border-t border-slate-100 fixed bottom-[88px] left-0 right-0 max-w-md mx-auto z-20">
+          <div className="flex gap-2">
+             <input 
+               value={chatInput}
+               onChange={(e) => setChatInput(e.target.value)}
+               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+               placeholder="描述您的问题..."
+               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+             />
+             <button 
+               onClick={handleSendMessage}
+               disabled={!chatInput.trim()}
+               className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+             >
+                <Send size={20} />
+             </button>
+          </div>
+       </div>
+    </div>
+  );
+
+  const SmartRepairModal = () => {
+    if (!isCameraOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+         <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200">
+            <button onClick={() => { setIsCameraOpen(false); setSelectedImage(null); setAnalysisResult(null); }} className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-md transition-colors">
+               <X size={20} />
+            </button>
+
+            {/* Image Preview Area */}
+            <div className="relative aspect-square bg-slate-900">
+               {selectedImage && <img src={selectedImage} alt="Analysis" className="w-full h-full object-cover" />}
+               
+               {isAnalyzing && (
+                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-white">
+                    <Loader2 size={48} className="animate-spin mb-4 text-emerald-400" />
+                    <p className="font-bold text-lg animate-pulse">正在智能分析...</p>
+                    <p className="text-xs text-white/70 mt-2">识别设备 • 诊断故障 • 估算费用</p>
+                 </div>
+               )}
+            </div>
+
+            {/* Result Area */}
+            {!isAnalyzing && analysisResult && (
+               <div className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                     <Sparkles className="text-emerald-500" size={20} />
+                     <h3 className="font-bold text-slate-800 text-lg">分析完成</h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <p className="text-xs text-slate-400 mb-1 font-bold uppercase">识别结果</p>
+                        <h4 className="font-bold text-slate-800">{analysisResult.title}</h4>
+                        <p className="text-sm text-slate-600 mt-1">{analysisResult.description}</p>
+                     </div>
+                     
+                     <div className="flex gap-3">
+                        <div className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                           <p className="text-xs text-slate-400 mb-1">紧急程度</p>
+                           <UrgencyBadge level={analysisResult.urgency} />
+                        </div>
+                        <div className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                           <p className="text-xs text-slate-400 mb-1">分类</p>
+                           <span className="text-xs font-bold text-slate-700">{analysisResult.category}</span>
+                        </div>
+                     </div>
+
+                     <Button fullWidth onClick={() => handleCreateOrder(true)}>
+                        生成工单
+                     </Button>
+                  </div>
+               </div>
+            )}
+            
+            {!isAnalyzing && !analysisResult && (
+               <div className="p-8 text-center text-slate-500">
+                  <Loader2 size={24} className="animate-spin mx-auto mb-2"/>
+                  正在准备分析...
+               </div>
+            )}
+         </div>
+      </div>
+    );
+  };
+
+  const VoiceRepairModal = () => {
+    const [isRecording, setIsRecording] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const [voiceAnalysis, setVoiceAnalysis] = useState<AnalysisResult | null>(null);
+    const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+
+    if (!isVoiceOpen) return null;
+
+    const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        chunksRef.current = [];
+
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+
+        mediaRecorderRef.current.onstop = () => {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          setAudioBlob(blob);
+          handleVoiceAnalyze(blob);
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("无法访问麦克风，请检查权限。");
+      }
+    };
+
+    const stopRecording = () => {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+      }
+    };
+
+    const handleVoiceAnalyze = (blob: Blob) => {
+      setIsProcessingVoice(true);
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        try {
+           const result = await analyzeRepairAudio(base64data);
+           setVoiceAnalysis(result);
+        } catch (e) {
+           console.error(e);
+           alert("语音分析失败，请重试。");
+        } finally {
+           setIsProcessingVoice(false);
+        }
+      };
+    };
+
+    const confirmVoiceOrder = () => {
+        if (voiceAnalysis) {
+            setAnalysisResult(voiceAnalysis);
+            handleCreateOrder(true);
+        }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+         <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+             <button onClick={() => { setIsVoiceOpen(false); setVoiceAnalysis(null); setAudioBlob(null); }} className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-50 rounded-full">
+               <X size={24} />
+             </button>
+
+             {!voiceAnalysis && !isProcessingVoice ? (
+               <>
+                 <div className="mb-8 mt-4">
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">{isRecording ? '正在聆听...' : '语音报修'}</h3>
+                    <p className="text-slate-500 text-sm">{isRecording ? '请描述设备故障情况' : '点击下方按钮开始说话'}</p>
+                 </div>
+
+                 <div className="relative h-32 flex items-center justify-center">
+                    {isRecording && (
+                       <>
+                         <div className="absolute w-full h-full bg-indigo-500/20 rounded-full animate-ping"></div>
+                         <div className="absolute w-2/3 h-2/3 bg-indigo-500/30 rounded-full animate-pulse delay-75"></div>
+                       </>
+                    )}
+                    <button 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-xl transition-all relative z-10 ${isRecording ? 'bg-red-500 hover:bg-red-600 scale-110' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    >
+                       {isRecording ? <Square size={32} fill="currentColor" /> : <Mic size={36} />}
+                    </button>
+                 </div>
+               </>
+             ) : isProcessingVoice ? (
+                <div className="py-12">
+                   <Loader2 size={48} className="animate-spin text-indigo-600 mx-auto mb-4"/>
+                   <p className="font-bold text-slate-700">正在分析语音...</p>
+                </div>
+             ) : (
+                <div className="text-left animate-in slide-in-from-bottom-4 duration-300">
+                   <div className="flex items-center gap-2 mb-4 text-emerald-600 justify-center">
+                      <CheckCircle size={24} />
+                      <span className="font-bold">识别成功</span>
+                   </div>
+                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                      <h4 className="font-bold text-slate-800 mb-1">{voiceAnalysis?.title}</h4>
+                      <p className="text-sm text-slate-600 mb-3">{voiceAnalysis?.description}</p>
+                      <div className="flex gap-2">
+                         <UrgencyBadge level={voiceAnalysis?.urgency || UrgencyLevel.MEDIUM} />
+                         <span className="text-xs bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500">{voiceAnalysis?.category}</span>
+                      </div>
+                   </div>
+                   <Button fullWidth onClick={confirmVoiceOrder}>确认并生成工单</Button>
+                   <button onClick={() => { setVoiceAnalysis(null); setAudioBlob(null); }} className="w-full mt-3 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 rounded-xl">重试</button>
+                </div>
+             )}
+         </div>
+      </div>
+    );
+  };
+
+  const LocationPickerModal = () => {
+     if (!isLocationPickerOpen) return null;
+     
+     const locations = [
+        '上海中心大厦, 上海',
+        '环球金融中心, 上海',
+        '金茂大厦, 上海',
+        '外滩SOHO, 上海',
+        '虹桥天地, 上海'
+     ];
+
+     return (
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+           <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom duration-200">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-bold text-lg text-slate-800">切换位置</h3>
+                 <button onClick={() => setIsLocationPickerOpen(false)}><X size={20} className="text-slate-400"/></button>
+              </div>
+              <div className="space-y-2">
+                 {locations.map(loc => (
+                    <button 
+                      key={loc} 
+                      onClick={() => handleLocationSelect(loc)}
+                      className={`w-full p-4 rounded-xl flex items-center gap-3 text-left transition-colors ${currentLocation === loc ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'hover:bg-slate-50 text-slate-600'}`}
+                    >
+                       <MapPin size={20} className={currentLocation === loc ? 'text-emerald-500' : 'text-slate-400'} />
+                       <span className="font-medium">{loc}</span>
+                       {currentLocation === loc && <CheckCircle size={16} className="ml-auto text-emerald-500"/>}
+                    </button>
+                 ))}
+                 <button className="w-full p-4 rounded-xl flex items-center gap-3 text-left hover:bg-slate-50 text-indigo-600 font-medium border border-dashed border-indigo-200 justify-center">
+                    <Navigation size={18} />
+                    使用当前定位
+                 </button>
+              </div>
+           </div>
+        </div>
+     );
+  };
+
+  const EditRemarksModal = () => {
+    if (!isEditRemarksOpen) return null;
+    return (
+       <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xs rounded-2xl p-5 shadow-2xl animate-in zoom-in-95">
+             <h3 className="font-bold text-slate-800 mb-4">修改备注</h3>
+             <textarea 
+               value={editRemarksValue}
+               onChange={(e) => setEditRemarksValue(e.target.value)}
+               className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none mb-4"
+               placeholder="输入新的备注信息..."
+             />
+             <div className="flex gap-3">
+                <Button variant="secondary" fullWidth onClick={() => setIsEditRemarksOpen(false)}>取消</Button>
+                <Button fullWidth onClick={handleUpdateRemarks}>保存</Button>
+             </div>
+          </div>
+       </div>
+    );
+  };
+
+  const PaymentModal = () => {
+     if (!isPaymentOpen || !selectedOrder) return null;
+     return (
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom duration-200">
+               <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-lg text-slate-800">支付详情</h3>
+                  <button onClick={() => setIsPaymentOpen(false)}><X size={20} className="text-slate-400"/></button>
+               </div>
+               
+               <div className="bg-slate-50 rounded-2xl p-5 mb-6 border border-slate-100 flex flex-col items-center">
+                   <p className="text-sm text-slate-500 mb-1">支付金额</p>
+                   <h1 className="text-4xl font-bold text-slate-800 mb-4">¥{selectedOrder.cost?.toFixed(2)}</h1>
+                   
+                   <div className="w-full h-px bg-slate-200 mb-4"></div>
+                   
+                   <div className="w-full space-y-2">
+                      <div className="flex justify-between text-sm">
+                         <span className="text-slate-500">工单号</span>
+                         <span className="font-mono text-slate-700">{selectedOrder.id}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                         <span className="text-slate-500">服务项目</span>
+                         <span className="text-slate-700 font-medium truncate max-w-[150px]">{selectedOrder.title}</span>
+                      </div>
+                   </div>
+               </div>
+
+               <div className="space-y-3 mb-6">
+                  <button className="w-full p-4 rounded-xl border border-indigo-500 bg-indigo-50 flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-green-500 flex items-center justify-center text-white"><Wallet size={18}/></div>
+                        <span className="font-bold text-slate-800">微信支付</span>
+                     </div>
+                     <CheckCircle size={20} className="text-indigo-600" />
+                  </button>
+                  <button className="w-full p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between opacity-60">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center text-white"><CreditCard size={18}/></div>
+                        <span className="font-bold text-slate-800">信用卡</span>
+                     </div>
+                  </button>
+               </div>
+
+               <Button fullWidth onClick={handlePayment}>立即支付</Button>
+            </div>
+        </div>
+     );
+  };
 
   return (
     <Layout 

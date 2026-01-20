@@ -48,6 +48,7 @@ export interface WorkOrder {
   remarks?: string; // User editable remarks
   engineer?: Engineer;
   cost?: number;
+  serialNumber?: string; // Device Serial Number
 }
 
 export interface AnalysisResult {
