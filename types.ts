@@ -49,6 +49,7 @@ export interface WorkOrder {
   engineer?: Engineer;
   cost?: number;
   serialNumber?: string; // Device Serial Number
+  scheduledTime?: string; // Scheduled visit time (e.g., "ASAP" or ISO String)
 }
 
 export interface AnalysisResult {

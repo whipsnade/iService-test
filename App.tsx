@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Card, Button, StatusBadge, UrgencyBadge } from './components/UI';
-import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, Headphones, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp, Bot, Send, Barcode, Tag } from 'lucide-react';
+import { MapPin, Bell, AlertTriangle, Camera, PenTool, CheckCircle, ChevronRight, X, Loader2, Search, Navigation, Calculator, Fan, Lightbulb, Droplets, HelpCircle, ImagePlus, Trash2, Info, Filter, Calendar, ChevronDown, MonitorSmartphone, Headphones, ChevronLeft, Phone, User, Clock, Map as MapIcon, CreditCard, Wallet, Edit3, Mic, Square, Sparkles, Mail, MailOpen, FileText, Settings as SettingsIcon, ChevronUp, Bot, Send, Barcode, Tag, CalendarClock } from 'lucide-react';
 import { WorkOrder, OrderStatus, UrgencyLevel, AnalysisResult } from './types';
 import { analyzeRepairImage, analyzeRepairAudio } from './services/geminiService';
 
@@ -71,7 +71,8 @@ const MOCK_ORDERS: WorkOrder[] = [
     description: "屏幕冻结，触摸无反应。",
     remarks: "请从侧门进入。",
     serialNumber: "POS-2023-X99",
-    cost: 100
+    cost: 100,
+    scheduledTime: "尽快上门"
   },
   {
     id: 'WO-9920',
@@ -88,7 +89,8 @@ const MOCK_ORDERS: WorkOrder[] = [
     engineer: MOCK_ENGINEER,
     description: "发出巨大的研磨声，且不制冰。",
     remarks: "门禁密码是 1234",
-    cost: 150
+    cost: 150,
+    scheduledTime: "2023-10-25 14:00"
   },
   {
     id: 'WO-9918',
@@ -342,6 +344,7 @@ const App: React.FC = () => {
     let eqId = manualData?.equipmentId;
     let serial = manualData?.serialNumber;
     let cost = manualData?.cost;
+    let scheduledTime = manualData?.scheduledTime;
 
     if (isSmart && analysisResult) {
       title = analysisResult.title;
@@ -351,6 +354,7 @@ const App: React.FC = () => {
       // Simple heuristic for smart mapping, in real app this comes from AI
       eqId = 'other'; 
       cost = 50; // default smart cost
+      scheduledTime = "尽快上门";
     } else if (manualData) {
       title = manualData.title;
       description = manualData.description;
@@ -370,7 +374,8 @@ const App: React.FC = () => {
       imageUrl: img,
       timeline: [{ title: '工单已创建', timestamp: new Date().toLocaleTimeString(), isActive: true }],
       serialNumber: serial,
-      cost: cost
+      cost: cost,
+      scheduledTime: scheduledTime
     };
 
     setOrders([newOrder, ...orders]);
@@ -773,6 +778,12 @@ const App: React.FC = () => {
                        SN: {selectedOrder.serialNumber}
                     </div>
                  )}
+                 {selectedOrder.scheduledTime && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-indigo-500 font-bold bg-indigo-50 inline-block px-2 py-0.5 rounded ml-1">
+                       <CalendarClock size={10} />
+                       预约: {selectedOrder.scheduledTime}
+                    </div>
+                 )}
                </div>
              </div>
 
@@ -994,6 +1005,8 @@ const App: React.FC = () => {
     const [manualPhoto, setManualPhoto] = useState<string | null>(null);
     const [remarks, setRemarks] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
+    const [scheduledTime, setScheduledTime] = useState('尽快上门');
+    const [customDate, setCustomDate] = useState('');
     const manualFileRef = useRef<HTMLInputElement>(null);
 
     if (!isManualOpen) return null;
@@ -1014,6 +1027,8 @@ const App: React.FC = () => {
     const handleManualSubmit = () => {
        const title = currentEquipment ? currentEquipment.name : "维修请求";
        const desc = selectedFault ? selectedFault : "报告的问题";
+       const finalTime = scheduledTime === 'custom' ? customDate : scheduledTime;
+
        // Ensure remarks are passed as remarks
        handleCreateOrder(false, { 
            title, 
@@ -1021,7 +1036,8 @@ const App: React.FC = () => {
            image: manualPhoto, 
            equipmentId: selectedEq,
            serialNumber: serialNumber,
-           cost: currentPrice 
+           cost: currentPrice,
+           scheduledTime: finalTime || "尽快上门"
        });
     };
 
@@ -1156,6 +1172,44 @@ const App: React.FC = () => {
                  </div>
                )}
                <input type="file" ref={manualFileRef} className="hidden" accept="image/*" onChange={handleManualPhotoUpload}/>
+             </div>
+
+             {/* Step 4: Scheduled Time */}
+             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+               <div className="flex items-center gap-2 mb-3">
+                 <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">4</div>
+                 <h4 className="font-semibold text-slate-800">预约上门</h4>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-2 mb-3">
+                 {['尽快上门', '今天下午', '明天上午', 'custom'].map(time => (
+                   <button
+                     key={time}
+                     onClick={() => setScheduledTime(time)}
+                     className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all ${
+                       scheduledTime === time 
+                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                       : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                     }`}
+                   >
+                     {time === 'custom' ? '选择具体时间' : time}
+                   </button>
+                 ))}
+               </div>
+
+               {scheduledTime === 'custom' && (
+                 <div className="animate-in slide-in-from-top-2 duration-200">
+                    <div className="relative">
+                      <CalendarClock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                      <input 
+                        type="datetime-local"
+                        value={customDate}
+                        onChange={(e) => setCustomDate(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-600"
+                      />
+                    </div>
+                 </div>
+               )}
              </div>
 
           </div>
